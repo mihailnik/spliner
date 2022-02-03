@@ -1,15 +1,7 @@
 // приемник на тележке
-#include <SPI.h>
-#include <nRF24L01.h>
-#include "RF24.h"
-#include <TM1637Display.h>
-#include <iarduino_RTC.h>
-#include <Keypad.h>
-#include "constants.h"
-#include "sensor.h"
-#include "button.h"
-#include "encoder.h"
-#include "PinChangeInterrupt.h"
+
+#include "main.h"
+
 
 byte rowPins[ROWS] = {23, 28, 27, 25}; 
 byte colPins[COLS] = {24, 22, 26};
@@ -58,6 +50,7 @@ TM1637Display display_time(time_CLK, time_DIO);
 //TM1637Display displays[0] = TM1637Display display_ch1(channel1_CLK, channel1_DIO);
 
 RF24 radio(48, 53); // nRF24L01+ (CE, CSN)
+
 
 void setup() {
   // Setup Displays
@@ -138,6 +131,7 @@ void setup() {
   pinMode(CLK_4, INPUT);
   pinMode(DT_4, INPUT);
   
+  
   encoders[0][_counter] = 0;
   encoders[0][_CLK] = CLK_0;
   encoders[0][_DT] = DT_0;
@@ -171,15 +165,6 @@ void setup() {
   Serial.begin(9600);
 }
 
-void _encode(byte id){
-  encoders[id][_currentStateCLK] = digitalRead(encoders[id][_CLK]);
-  if (encoders[id][_currentStateCLK] != encoders[id][_lastStateCLK]  && encoders[id][_currentStateCLK] == 1){
-    digitalRead(encoders[id][_DT]) != encoders[id][_currentStateCLK] ? encoders[id][_counter] += _up : encoders[id][_counter] -=_up;
-    channels[id][c_dist] = encoders[id][_counter];
-  }
-  encoders[id][_lastStateCLK] = encoders[id][_currentStateCLK];
-}
-
 void encoderRead0(void) {
   _encode(0);
 }
@@ -199,6 +184,15 @@ void encoderRead3(void) {
 void encoderRead4(void) {
   _encode(4);
 }
+void _encode(byte id){
+  encoders[id][_currentStateCLK] = digitalRead(encoders[id][_CLK]);
+  if (encoders[id][_currentStateCLK] != encoders[id][_lastStateCLK]  && encoders[id][_currentStateCLK] == 1){
+    digitalRead(encoders[id][_DT]) != encoders[id][_currentStateCLK] ? encoders[id][_counter] += _up : encoders[id][_counter] -=_up;
+    channels[id][c_dist] = encoders[id][_counter];
+  }
+  encoders[id][_lastStateCLK] = encoders[id][_currentStateCLK];
+}
+
 
 uint16_t dirCorrection(uint16_t _speed, bool dir){
   uint16_t speed_value;
