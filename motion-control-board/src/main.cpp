@@ -165,6 +165,44 @@ void setup() {
   Serial.begin(9600);
 }
 
+void loop() {
+  display_time.setSegments(SEG_EDIT);
+  while(1){
+    readModeButton();
+    blinkFunc();
+    if(mode == EDIT_MODE){
+      editMode();
+    } else if (mode == RUN_MODE) {
+      runMode();
+    } else if (mode == LIVE_MODE) {
+      liveControl();
+    } else if (mode == DIST_MODE) {
+      distMode();
+    } else if (mode == ACC_MODE) {
+      accMode();
+    } else if (mode == STOP_MOTION_MODE) {
+      stopMotionMode();
+    }
+
+    if (customKey == '*'){
+      mode = LIVE_MODE;
+    }
+    if (customKey == '#'){
+      if(mode == STOP_MOTION_MODE){
+        setLiveControl();
+      } else if(mode == LIVE_MODE){
+        setSpeedMode();
+      } else if(mode == EDIT_MODE){
+        setDistMode();
+      } else if(mode == DIST_MODE){
+        setStopmMotionMode();
+      } else if(mode == ACC_MODE){
+        setAccMode();
+      }
+    }
+  }
+}
+
 void encoderRead0(void) {
   _encode(0);
 }
@@ -184,6 +222,7 @@ void encoderRead3(void) {
 void encoderRead4(void) {
   _encode(4);
 }
+
 void _encode(byte id){
   encoders[id][_currentStateCLK] = digitalRead(encoders[id][_CLK]);
   if (encoders[id][_currentStateCLK] != encoders[id][_lastStateCLK]  && encoders[id][_currentStateCLK] == 1){
@@ -633,40 +672,3 @@ void blinkFunc(){
   }
 }
 
-void loop() {
-  display_time.setSegments(SEG_EDIT);
-  while(1){
-    readModeButton();
-    blinkFunc();
-    if(mode == EDIT_MODE){
-      editMode();
-    } else if (mode == RUN_MODE) {
-      runMode();
-    } else if (mode == LIVE_MODE) {
-      liveControl();
-    } else if (mode == DIST_MODE) {
-      distMode();
-    } else if (mode == ACC_MODE) {
-      accMode();
-    } else if (mode == STOP_MOTION_MODE) {
-      stopMotionMode();
-    }
-
-    if (customKey == '*'){
-      mode = LIVE_MODE;
-    }
-    if (customKey == '#'){
-      if(mode == STOP_MOTION_MODE){
-        setLiveControl();
-      } else if(mode == LIVE_MODE){
-        setSpeedMode();
-      } else if(mode == EDIT_MODE){
-        setDistMode();
-      } else if(mode == DIST_MODE){
-        setStopmMotionMode();
-      } else if(mode == ACC_MODE){
-        setAccMode();
-      }
-    }
-  }
-}
