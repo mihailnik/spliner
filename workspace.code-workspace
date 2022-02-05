@@ -7,6 +7,9 @@
 		{
 			"name": "camera-receiver",
 			"path": "camera-receiver"
+		},
+		{
+			"path": "grbl-Mega-5X-edge"
 		}
 	]
 }

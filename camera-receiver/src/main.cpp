@@ -99,7 +99,7 @@ void setup(){
 
   // set Dir for Lift
   PORTC|=(1<<0);
-  PORTC&=~(1<<1);
+ // PORTC&=~(1<<1);  // реверс для второго лифта
 }
 
 void logInput(){
@@ -176,14 +176,14 @@ void loop()
     }
 
     if (MotorClock.distanceToGo() != 0){
-    //   MotorClock.run();
-    // }
-    // if (MotorLift.distanceToGo() != 0){
-    //   MotorLift.run();
-    // }
-    // if (MotorNod.distanceToGo() != 0){
-    //   MotorNod.run();
-    // }
+      MotorClock.run();
+    }
+    if (MotorLift.distanceToGo() != 0){
+      MotorLift.run();
+    }
+    if (MotorNod.distanceToGo() != 0){
+      MotorNod.run();
+    }
   }
  }
-}
+
