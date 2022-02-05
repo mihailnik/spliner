@@ -10,6 +10,10 @@
 		},
 		{
 			"path": "grbl-Mega-5X-edge"
+		},
+		{
+			"name": "camera-receiver-gyver",
+			"path": "camera-receiver-gyver"
 		}
 	]
 }
