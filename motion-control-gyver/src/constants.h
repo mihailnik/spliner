@@ -156,10 +156,11 @@ const uint8_t SEG_REPT[] = {
 #define ACCEL_FORMAT -50
 #define SET_CURRUNT_FORMAT -60
 #define REPEAT_FORMAT -70
+#define DIR_FORMAT -80
 
 #define STOP_MODE 0
 #define LIVE_MODE 1
-#define EDIT_MODE 2
+#define SPEED_MODE 2
 #define RUN_MODE 3
 #define DIST_MODE 4
 #define ACC_MODE 5

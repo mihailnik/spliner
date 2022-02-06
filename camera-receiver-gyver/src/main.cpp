@@ -138,7 +138,11 @@ void loop()
         #endif
     }
 
-    if(data[c_format] == SPEED_FORMAT){
+    if(data[c_format] == DIR_FORMAT){
+      MotorClock.setPinsInverted(data[c_clock]==1, false, false);
+      MotorLift.setPinsInverted(data[c_lift], false, false);
+      MotorNod.setPinsInverted(data[c_nod], false, false);
+    } else if (data[c_format] == SPEED_FORMAT){
       MotorClock.setMaxSpeed(data[c_clock]);
       MotorLift.setMaxSpeed(data[c_lift]);
       MotorNod.setMaxSpeed(data[c_nod]);
@@ -157,15 +161,11 @@ void loop()
       MotorLift.setAcceleration(data[c_lift]);
       MotorNod.setAcceleration(data[c_nod]);
       return;
-    }
-
-    if(data[c_format] == DIST_FORMAT){
+    } else if(data[c_format] == DIST_FORMAT){
         MotorClock.moveTo(data[c_clock]);
         MotorLift.moveTo(data[c_lift]);
         MotorNod.moveTo(data[c_nod]);
-    }
-
-    if(data[c_format] == REPEAT_FORMAT){
+    } else if(data[c_format] == REPEAT_FORMAT){
         currentNod += data[c_nod];
         currentLift += data[c_lift];
         currentClock += data[c_clock];

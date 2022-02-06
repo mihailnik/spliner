@@ -8,16 +8,18 @@ byte colPins[COLS] = {24, 22, 26};
 char customKey;
 int encoders[5][5]; // _counter | _currentStateCLK | _lastStateCLK | _CLK | _DT
 byte _up = 50;
-const byte dataCount = 7;
 
+// буфер данных для nrf24l01
+const byte dataCount = 7;         
 uint16_t data[dataCount];
 uint16_t prevData[dataCount];
 
-unsigned long previousMillis = 0;
+// переменные для функции мигания
+unsigned long previousMillis = 0; 
 const long interval = 1000;
 bool blinkStatus = false;
 
-byte mode = EDIT_MODE;
+byte mode = DIST_MODE;
 byte mainDir = STOP_NOW;
 int channels[5][6]; // status | speed | dir | accel | dist | old_status
 const int resistors_count = 9;
@@ -50,7 +52,6 @@ TM1637Display display_time(time_CLK, time_DIO);
 //TM1637Display displays[0] = TM1637Display display_ch1(channel1_CLK, channel1_DIO);
 
 RF24 radio(48, 53); // nRF24L01+ (CE, CSN)
-
 
 void setup() {
   // Setup Displays
@@ -166,40 +167,14 @@ void setup() {
 }
 
 void loop() {
-  display_time.setSegments(SEG_EDIT);
-  while(1){
-    readModeButton();
-    blinkFunc();
-    if(mode == EDIT_MODE){
-      editMode();
-    } else if (mode == RUN_MODE) {
-      runMode();
-    } else if (mode == LIVE_MODE) {
-      liveControl();
-    } else if (mode == DIST_MODE) {
-      distMode();
-    } else if (mode == ACC_MODE) {
-      accMode();
-    } else if (mode == STOP_MOTION_MODE) {
-      stopMotionMode();
-    }
+//  display_time.setSegments(SEG_EDIT);
 
-    if (customKey == '*'){
-      mode = LIVE_MODE;
-    }
-    if (customKey == '#'){
-      if(mode == STOP_MOTION_MODE){
-        setLiveControl();
-      } else if(mode == LIVE_MODE){
-        setSpeedMode();
-      } else if(mode == EDIT_MODE){
-        setDistMode();
-      } else if(mode == DIST_MODE){
-        setStopmMotionMode();
-      } else if(mode == ACC_MODE){
-        setAccMode();
-      }
-    }
+// Вызываем режим который хотим при инициализации
+  setDistMode();
+  while(1){
+    readStopRunButton();
+    ModeSwicher();
+    blinkFunc();
   }
 }
 
@@ -314,6 +289,7 @@ int getKeybordSpeed(){
 }
 
 void readButtons(){
+  uint16_t c_format_tmp = STOP_FORMAT;
   bool setCurrentFlag = false;
   bool needUpdateRepeat = false;
   for (byte i = 0; i < channels_count; i++) {
@@ -324,7 +300,8 @@ void readButtons(){
       channels[i][c_old_status] ? channels[i][c_status] = channels[i][c_old_status] : channels[i][c_status] = s_active;
     }
     
-    if(channels[i][c_status] != s_off){
+    //меняем Dir при включенном MUTE что бы не на ходу))
+    if(channels[i][c_status] == s_off){
       channels[i][c_dir] = dirButtons[i]->getState();
     }
     
@@ -341,7 +318,7 @@ void readButtons(){
         channels[i][c_dist] = 0;
         encoders[i][_counter] = 0;
         setCurrentFlag = true;
-      } else if(mode == DIST_MODE || mode == STOP_MOTION_MODE){
+      } else if(mode == DIST_MODE){
         if(channels[i][c_status] == s_repeat){
           channels[i][c_status] = s_active;
           channels[i][c_old_status] = s_active;
@@ -372,8 +349,33 @@ void readButtons(){
   }
 }
 
-void readModeButton(){
-  if(mode != STOP_MOTION_MODE){
+// Переключаем кнопкой "#" и "тикаем" активный режим
+void ModeSwicher(){
+  customKey = customKeypad.getKey();
+  if (customKey == '#'){ // Переключаем режим кнопкой "#"
+    if(mode == DIST_MODE)             {setStopmMotionMode(); }
+    else if(mode == STOP_MOTION_MODE) {setLiveMode(); }
+    else if(mode == LIVE_MODE)        {setSpeedMode(); }
+    else if(mode == SPEED_MODE)       {setAccMode(); }
+    else if(mode == ACC_MODE)         {setDistMode(); }
+    }
+
+    //"тикаем" активный режим 
+  if        (mode == SPEED_MODE)         { editMode(); }
+  else if  (mode == RUN_MODE)          { runMode(); }
+  else if  (mode == LIVE_MODE)         { liveControl(); } 
+  else if  (mode == DIST_MODE)         { distMode(); } 
+  else if  (mode == ACC_MODE)          { accMode(); } 
+  else if  (mode == STOP_MOTION_MODE)  { stopMotionMode(); }
+
+  //  // if (customKey == '*'){
+  //     mode = LIVE_MODE;
+  //   }
+}
+
+// Читаем кнопки << , STOP, >>. Если стоп сразу отправляем.
+// Если <<  или  >> то mode=RUN, выводи на дисп rigt left stop
+void readStopRunButton(){
     if(leftTimeRiskBtn->getState()){
       if(mode != DIST_MODE){
         mode = RUN_MODE;
@@ -394,19 +396,7 @@ void readModeButton(){
       data[c_format] = STOP_FORMAT;
       sendData();
     }
-  } else {
-    if (rightTimeRiskBtn->getState()){
-      //data[c_format] = REPEAT_FORMAT;
-      sendData();
-    }
-    if (leftTimeRiskBtn->getState()){
-      //data[c_format] = REPEAT_FORMAT;
-      sendData();
-    }
-  }
-     
-  customKey = customKeypad.getKey();
-  delay(50);
+//    delay(50);
 }
 
 void readChannels(){
@@ -513,7 +503,7 @@ void runMode(){
     setDataForSend(false);
   } else if (mainDir == STOP_NOW) {
     stopMode();
-    mode = EDIT_MODE;
+    mode = SPEED_MODE;
     display_time.setSegments(SEG_EDIT);
   }
   sendData();
@@ -537,7 +527,7 @@ void showTime(){
   }   
 }
 
-void setLiveControl(){
+void setLiveMode(){
   for (byte i = 0; i < channels_count; i++) {
     channels[i][c_status] = s_live;
     channels[i][c_old_status] = s_live;
@@ -553,7 +543,7 @@ void setSpeedMode(){
     channels[i][c_status] = s_active;
     channels[i][c_old_status] = s_active;
   }
-  mode = EDIT_MODE; // SPEED
+  mode = SPEED_MODE; // SPEED
   display_time.setSegments(SEG_SPED);
   delay(500);
 }
@@ -664,7 +654,7 @@ void sendData(){  // Отправка с пульта в терминал и н�
   
 }
 
-void blinkFunc(){
+void blinkFunc(){  // Функция меняет blinkStatus с периодом interval
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;

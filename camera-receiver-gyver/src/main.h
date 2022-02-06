@@ -8,6 +8,7 @@
 #define ACCEL_FORMAT -50
 #define SET_CURRUNT_FORMAT -60
 #define REPEAT_FORMAT -70
+#define DIR_FORMAT -80
 
 #define SW1 14
 #define SW2 15

@@ -16,7 +16,7 @@ unsigned long previousMillis = 0;
 const long interval = 1000;
 bool blinkStatus = false;
 
-byte mode = EDIT_MODE;
+byte mode = SPEED_MODE;
 byte mainDir = STOP_NOW;
 int channels[5][6]; // status | speed | dir | accel | dist | old_status
 const int resistors_count = 9;
@@ -167,9 +167,9 @@ void setup() {
 void loop() {
   display_time.setSegments(SEG_EDIT);
   while(1){
-    readModeButton();
+    readStopRunButton();
     blinkFunc();
-    if(mode == EDIT_MODE){
+    if(mode == SPEED_MODE){
       editMode();
     } else if (mode == RUN_MODE) {
       runMode();
@@ -188,10 +188,10 @@ void loop() {
     }
     if (customKey == '#'){
       if(mode == STOP_MOTION_MODE){
-        setLiveControl();
+        setLiveMode();
       } else if(mode == LIVE_MODE){
         setSpeedMode();
-      } else if(mode == EDIT_MODE){
+      } else if(mode == SPEED_MODE){
         setDistMode();
       } else if(mode == DIST_MODE){
         setStopmMotionMode();
@@ -371,7 +371,7 @@ void readButtons(){
   }
 }
 
-void readModeButton(){
+void readStopRunButton(){
   if(mode != STOP_MOTION_MODE){
     if(leftTimeRiskBtn->getState()){
       if(mode != DIST_MODE){
@@ -512,7 +512,7 @@ void runMode(){
     setDataForSend(false);
   } else if (mainDir == STOP_NOW) {
     stopMode();
-    mode = EDIT_MODE;
+    mode = SPEED_MODE;
     display_time.setSegments(SEG_EDIT);
   }
   sendData();
@@ -536,7 +536,7 @@ void showTime(){
   }   
 }
 
-void setLiveControl(){
+void setLiveMode(){
   for (byte i = 0; i < channels_count; i++) {
     channels[i][c_status] = s_live;
     channels[i][c_old_status] = s_live;
@@ -552,7 +552,7 @@ void setSpeedMode(){
     channels[i][c_status] = s_active;
     channels[i][c_old_status] = s_active;
   }
-  mode = EDIT_MODE; // SPEED
+  mode = SPEED_MODE; // SPEED
   display_time.setSegments(SEG_SPED);
   delay(500);
 }

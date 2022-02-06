@@ -37,7 +37,7 @@ void sendSpeed(bool invert);
 void sendAcc(void);
 void showTime(void);
 void showValues(void);
-void setLiveControl(void);
+void setLiveMode(void);
 void liveControl(void);
 void setStopmMotionMode(void);
 void setDistMode(void);
@@ -55,7 +55,7 @@ void distMode(void);
 void displayChannel(byte id, const char *title);
 void displayChannel(byte id, int value);
 void readChannels(void);
-void readModeButton(void);
+void readStopRunButton(void);
 void readButtons(void);
 void readResistors(void);
 int getValueById(byte id);
@@ -63,5 +63,6 @@ byte convertToNumber(char numChar);
 byte getLiveId(byte id);
 uint16_t distCorrection(uint16_t _dist, byte dir);
 uint16_t dirCorrection(uint16_t _speed, bool dir);
+void ModeSwicher(void);
 
 #endif
