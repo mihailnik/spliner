@@ -14,6 +14,10 @@
 		{
 			"name": "camera-receiver-gyver",
 			"path": "camera-receiver-gyver"
+		},
+		{
+			"name": "motion-control-gyver",
+			"path": "motion-control-gyver"
 		}
 	]
 }

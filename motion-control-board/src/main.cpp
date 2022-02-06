@@ -2,7 +2,6 @@
 
 #include "main.h"
 
-
 byte rowPins[ROWS] = {23, 28, 27, 25}; 
 byte colPins[COLS] = {24, 22, 26};
 char customKey;

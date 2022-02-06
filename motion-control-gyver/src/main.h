@@ -10,9 +10,9 @@
  * or the GNU Lesser General Public License version 2.1, both as
  * published by the Free Software Foundation.
  */
+#ifndef _MAIN_H_INCLUDED
+#define _MAIN_H_INCLUDED
 
-#ifndef _SPI_H_INCLUDED
-#define _SPI_H_INCLUDED
 #include <SPI.h>
 #include <nRF24L01.h>
 #include "RF24.h"
@@ -24,6 +24,7 @@
 #include "button.h"
 #include "encoder.h"
 #include "PinChangeInterrupt.h"
+
 void encoderRead0(void);
 void encoderRead1(void);
 void encoderRead2(void);
@@ -62,4 +63,5 @@ byte convertToNumber(char numChar);
 byte getLiveId(byte id);
 uint16_t distCorrection(uint16_t _dist, byte dir);
 uint16_t dirCorrection(uint16_t _speed, bool dir);
+
 #endif
