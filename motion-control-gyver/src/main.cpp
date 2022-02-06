@@ -437,7 +437,8 @@ void stopMotionMode(){
     invert = false;
     setDataForSend(invert);
   }
-  //sendSpeed(invert);
+  sendData();
+  sendSpeed(invert);
 }
 
 void editMode(){
