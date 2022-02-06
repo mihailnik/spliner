@@ -23,7 +23,9 @@
 RF24 radio(48, 53); // nRF24L01+ (CE, CSN)
 
 int data[7] = {512, 512, 512, 512, 0, 512, 512};
-
+int dir_Nod = 0; // буфер направления мотора
+int dir_Lift = 0; // буфер направления мотора
+int dir_Clock = 0; // буфер направления мотора
 int currentNod = 0;
 int currentLift = 0;
 int currentClock = 0;
@@ -118,7 +120,8 @@ void logInput(){
   Serial.print(" | ");
   Serial.println(data[6]);
   delay(100);
-}    
+}
+
 void loop()
 {
   MotorLift.setCurrentPosition(0);
@@ -139,9 +142,9 @@ void loop()
     }
 
     if(data[c_format] == DIR_FORMAT){
-      MotorClock.setPinsInverted(data[c_clock]==1, false, false);
-      MotorLift.setPinsInverted(data[c_lift], false, false);
-      MotorNod.setPinsInverted(data[c_nod], false, false);
+      dir_Nod = data[c_nod];
+      dir_Lift = data[c_lift];
+      dir_Clock = data[c_clock];
     } else if (data[c_format] == SPEED_FORMAT){
       MotorClock.setMaxSpeed(data[c_clock]);
       MotorLift.setMaxSpeed(data[c_lift]);
@@ -165,6 +168,7 @@ void loop()
         MotorClock.moveTo(data[c_clock]);
         MotorLift.moveTo(data[c_lift]);
         MotorNod.moveTo(data[c_nod]);
+      return;
     } else if(data[c_format] == REPEAT_FORMAT){
         currentNod += data[c_nod];
         currentLift += data[c_lift];
@@ -177,13 +181,16 @@ void loop()
 
     if (MotorClock.distanceToGo() != 0){
       MotorClock.run();
-    }
+    }else{
+      MotorClock.setPinsInverted(dir_Clock==0,false, false);} // обновляем направление вращения двигателя
+
     if (MotorLift.distanceToGo() != 0){
       MotorLift.run();
-    }
+    } else {
+      MotorLift.setPinsInverted(dir_Lift==0,false, false);} // обновляем направление вращения двигателя
     if (MotorNod.distanceToGo() != 0){
       MotorNod.run();
-    }
-  }
+    }else{
+      MotorNod.setPinsInverted(dir_Nod==0,false, false);} // обновляем направление вращения двигателя
  }
-
+}
