@@ -56,7 +56,7 @@ void displayChannel(byte id, const char *title);
 void displayChannel(byte id, int value);
 void readChannels(void);
 void readStopRunButton(void);
-void readButtons(void);
+void readMuteDirButtons(void);
 void readResistors(void);
 int getValueById(byte id);
 byte convertToNumber(char numChar);

@@ -312,7 +312,7 @@ int getKeybordSpeed(){
   return dispSpeed;
 }
 
-void readButtons(){
+void readMuteDirButtons(){
   bool setCurrentFlag = false;
   bool needUpdateRepeat = false;
   for (byte i = 0; i < channels_count; i++) {
@@ -410,7 +410,7 @@ void readStopRunButton(){
 
 void readChannels(){
   readResistors();
-  readButtons();
+  readMuteDirButtons();
 }
 
 void displayChannel(byte id, int value){
@@ -497,7 +497,7 @@ void editMode(){
 }
 
 void accMode(){
-  readButtons();
+  readMuteDirButtons();
   showValues();
   sendAcc();
 }
@@ -576,7 +576,7 @@ void setStopmMotionMode(){
 }
 
 void liveControl(){    
-    readButtons();
+    readMuteDirButtons();
     readResistors();
     showValues();
     setDataForSend(true);

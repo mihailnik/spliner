@@ -288,10 +288,7 @@ int getKeybordSpeed(){
   return dispSpeed;
 }
 
-void readButtons(){
-  uint16_t c_format_tmp = STOP_FORMAT;
-  bool setCurrentFlag = false;
-  bool needUpdateRepeat = false;
+void readMuteDirButtons(){
   for (byte i = 0; i < channels_count; i++) {
     
     if(!muteButtons[i]->getState()){
@@ -300,52 +297,11 @@ void readButtons(){
       channels[i][c_old_status] ? channels[i][c_status] = channels[i][c_old_status] : channels[i][c_status] = s_active;
     }
     
-    //меняем Dir при включенном MUTE что бы не на ходу))
-    if(channels[i][c_status] == s_off){
+    //меняем Dir при включенной оси
+    if(channels[i][c_status] != s_off){
       channels[i][c_dir] = dirButtons[i]->getState();
     }
     
-    if(encoderButtons[i]->getState()){
-      if(encoderButtons[i]->getDelay() > 1000){
-        if(mode == ACC_MODE){
-          channels[i][c_accel] = getKeybordSpeed();
-        } else {
-          channels[i][c_speed] = getKeybordSpeed();
-          channels[i][c_status] = s_key_speed;
-          channels[i][c_old_status] = s_key_speed;
-        }
-      } else if(stopRiskBtn->getState()){
-        channels[i][c_dist] = 0;
-        encoders[i][_counter] = 0;
-        setCurrentFlag = true;
-      } else if(mode == DIST_MODE){
-        if(channels[i][c_status] == s_repeat){
-          channels[i][c_status] = s_active;
-          channels[i][c_old_status] = s_active;
-        } else {
-          channels[i][c_status] = s_repeat;
-          channels[i][c_old_status] = s_repeat;
-        }
-        needUpdateRepeat = true;
-      }
-    }
-    if(encoderButtons[i]->getDelay() == 0){
-      dispSpeed = 0;
-    }
-  }
-  if(needUpdateRepeat){
-    needUpdateRepeat = false;
-    
-    for (byte i = 0; i < channels_count; i++) {
-      data[i] = channels[i][c_status] == s_repeat ? 1 : 0;
-    }
-    data[c_format] = REPEAT_FORMAT;
-    sendData();
-  }
-  if(setCurrentFlag){
-    data[c_format] = SET_CURRUNT_FORMAT;
-    sendData();
-    setCurrentFlag = false;
   }
 }
 
@@ -401,7 +357,7 @@ void readStopRunButton(){
 
 void readChannels(){
   readResistors();
-  readButtons();
+  readMuteDirButtons();
 }
 
 void displayChannel(byte id, int value){
@@ -469,7 +425,9 @@ void distMode(){
 }
 
 void stopMotionMode(){
-  readChannels();
+  readResistors();
+
+  readMuteDirButtons();
   showValues();
   bool invert = false;
   if(mainDir == TO_THE_LEFT){
@@ -488,7 +446,7 @@ void editMode(){
 }
 
 void accMode(){
-  readButtons();
+  readMuteDirButtons();
   showValues();
   sendAcc();
 }
@@ -567,7 +525,7 @@ void setStopmMotionMode(){
 }
 
 void liveControl(){    
-    readButtons();
+    readMuteDirButtons();
     readResistors();
     showValues();
     setDataForSend(true);
@@ -578,14 +536,13 @@ void liveControl(){
 void setDataForSend(bool invert){
   for (byte i = 0; i < channels_count; i++) {
     bool dir = invert ? channels[i][c_dir] : !channels[i][c_dir];
-    if(mode == DIST_MODE || mode == STOP_MOTION_MODE){
+    if(mode == DIST_MODE){
       data[i] = channels[i][c_status] != s_off ? distCorrection(channels[i][c_dist], dir) : -10;
     } else {
       data[i] = channels[i][c_status] != s_off ? channels[i][c_speed] : 512;
     }
   }
- mode == DIST_MODE ? data[c_format] = DIST_FORMAT : data[c_format] = EMPTY_FORMAT;
- mode == STOP_MOTION_MODE ? data[c_format] = REPEAT_FORMAT : data[c_format] = EMPTY_FORMAT;
+ mode == DIST_MODE ? data[c_format] = DIST_FORMAT : data[c_format] = LIVE_FORMAT;
 }
 //  Old logic
 //for (byte l = 0; l < channels_count; l++) {
@@ -595,6 +552,7 @@ void setDataForSend(bool invert){
 //    data[6] = SPEED_FORMAT;
 //    sendData();
 
+// Шлем скорость если канал включен, или "0" если выключен
 void sendSpeed(bool invert){
   //if(mainDir != STOP_NOW){
     for (byte l = 0; l < channels_count; l++) {
