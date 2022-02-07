@@ -1,6 +1,6 @@
 #include "main.h"
 // #include "Motor.h"
-#include <AccelStepper.h>
+#include "GyverStepper2.h"
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
@@ -30,9 +30,10 @@ int currentNod = 0;
 int currentLift = 0;
 int currentClock = 0;
 
-AccelStepper MotorNod(34, 9, 34); 
-AccelStepper MotorLift(37, 6, 37);
-AccelStepper MotorClock(35, 8, 35);
+//GStepper<STEPPER2WIRE> stepper(steps, step, dir, en);               // драйвер step-dir + пин enable
+GStepper2<STEPPER2WIRE> MotorClock(400, 9, 34, 25); 
+GStepper2<STEPPER2WIRE> MotorLift(400, 6, 37, 22); 
+GStepper2<STEPPER2WIRE> MotorNod(400, 8, 35, 24); 
 
 float correction1 = 1.0; // Kivok
 float correction2 = 4.0; // Karusel
@@ -87,23 +88,14 @@ void setup(){
   //radio.openReadingPipe(1, 0x1234567800LL); // We open 1 pipe with identifier 0x1234567890 for receiving data (up to 6 different pipes can be opened on the channel, which should differ only in the last byte of the identifier)
   radio.startListening(); // Turn on the receiver, start listening to an open pipe
 
-  MotorNod.setMaxSpeed(100000.0);
-  MotorLift.setMaxSpeed(100000.0);  
-  MotorClock.setMaxSpeed(100000.0);
-  
-  MotorNod.setSpeed(100.0);
-  MotorLift.setSpeed(100.0);
-  MotorClock.setSpeed(100.0);
+  MotorNod.setMaxSpeed(200);
+  MotorLift.setMaxSpeed(1600);  
+  MotorClock.setMaxSpeed(50000);
 
-  MotorNod.setAcceleration(1000);
+  MotorNod.setAcceleration(200);
   MotorLift.setAcceleration(1000);
-  MotorClock.setAcceleration(1000);
+  MotorClock.setAcceleration(2000);
 
-  // set Dir for Lift
- // PORTC|=(1<<0);
- // PORTC|=(1<<2);
-
-  //PORTC&=~(1<<1);  // реверс для второго лифта
 }
 
 void logInput(){
@@ -126,15 +118,13 @@ void logInput(){
 
 void loop()
 {
-  MotorLift.setCurrentPosition(0);
-  MotorClock.setCurrentPosition(0);
-  MotorNod.setCurrentPosition(0);
-  
-  digitalWrite(ENBL_LIFT1, digitalRead(SW1));
-  digitalWrite(ENBL_LIFT2, digitalRead(SW2));
-  digitalWrite(ENBL_NOD, digitalRead(SW3));
-  digitalWrite(ENBL_CLOCK, digitalRead(SW4));
-
+  MotorClock.enable();
+  MotorLift.enable();
+  MotorNod.enable();
+  MotorClock.setTarget(10000);    // сбрасываем координаты в 0
+  MotorLift.setTarget(10000);    // сбрасываем координаты в 0
+  MotorNod.setTarget(100);    // сбрасываем координаты в 0
+ 
   while (1){
     if(radio.available()){
        radio.read(&data, sizeof(data));
@@ -142,6 +132,10 @@ void loop()
         logInput();
         #endif
     }
+
+      MotorClock.tick(); 
+      MotorNod.tick(); 
+      MotorLift.tick(); 
 
     if(data[c_format] == DIR_FORMAT){
       dir_Nod = data[c_nod];
@@ -157,9 +151,9 @@ void loop()
       MotorNod.stop();
       return;
     } else if (data[c_format] == SET_CURRUNT_FORMAT) {
-      MotorClock.setCurrentPosition(data[c_clock]);
-      MotorLift.setCurrentPosition(data[c_lift]);
-      MotorNod.setCurrentPosition(data[c_nod]);
+      MotorClock.setCurrent(data[c_clock]);
+      MotorLift.setCurrent(data[c_lift]);
+      MotorNod.setCurrent(data[c_nod]);
       return;
     } else if (data[c_format] == ACCEL_FORMAT) {
       MotorClock.setAcceleration(data[c_clock]);
@@ -167,32 +161,26 @@ void loop()
       MotorNod.setAcceleration(data[c_nod]);
       return;
     } else if(data[c_format] == DIST_FORMAT){
-        MotorClock.moveTo(data[c_clock]);
-        MotorLift.moveTo(data[c_lift]);
-        MotorNod.moveTo(data[c_nod]);
+        MotorClock.setTarget(data[c_clock]);
+        MotorLift.setTarget(data[c_lift]);
+        MotorNod.setTarget(data[c_nod]);
       return;
     } else if(data[c_format] == REPEAT_FORMAT){
-        currentNod += data[c_nod];
-        currentLift += data[c_lift];
-        currentClock += data[c_clock];
-        
-        MotorClock.moveTo(currentClock);
-        MotorLift.moveTo(currentLift);
-        MotorNod.moveTo(currentNod);
+        MotorClock.setTarget(currentLift);
     }
 
-    if (MotorClock.distanceToGo() != 0){
-      MotorClock.run();
-    }else{
-      PORTC|=(1<<2);} // обновляем направление вращения двигателя
 
-    if (MotorLift.distanceToGo() != 0){
-      MotorLift.run();
-    } else {
-      MotorLift.setPinsInverted(dir_Lift==0,false, false);} // обновляем направление вращения двигателя
-    if (MotorNod.distanceToGo() != 0){
-      MotorNod.run();
-    }else{
-      MotorNod.setPinsInverted(dir_Nod==0,false, false);} // обновляем направление вращения двигателя
- }
+    if (MotorClock.ready()){
+         dir_Clock==0?  MotorClock.reverse(false) : MotorClock.reverse(true) ;
+      } // инвертировать направление мотора
+
+    if (MotorLift.ready()){
+         dir_Lift==0?  MotorLift.reverse(false) : MotorLift.reverse(true) ;
+      } // инвертировать направление мотора
+
+    if (MotorNod.ready()){
+         dir_Nod==0?  MotorNod.reverse(false) : MotorNod.reverse(true) ;
+      } // инвертировать направление мотора
+
+  }
 }

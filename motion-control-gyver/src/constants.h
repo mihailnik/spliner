@@ -16,19 +16,18 @@
 #define time_CLK 2      
 #define time_DIO 8
 
-#define c_status 0
-#define c_isActive 0
+#define c_en 0
 #define c_speed 1
 #define c_dir 2
 #define c_accel 3
 #define c_dist 4
-#define c_old_status 5
+#define c_mode 5
 
-#define s_off 0
-#define s_active 1
-#define s_live 2
-#define s_key_speed 3
-#define s_repeat 4
+#define m_off 0
+#define m_active 1
+#define m_live 2
+#define m_key_speed 3
+#define m_repeat 4
 
 #define c_clock 0
 #define c_nod 1 // kivok
@@ -157,6 +156,7 @@ const uint8_t SEG_REPT[] = {
 #define SET_CURRUNT_FORMAT -60
 #define REPEAT_FORMAT -70
 #define DIR_FORMAT -80
+#define EN_FORMAT -90
 
 #define STOP_MODE 0
 #define LIVE_MODE 1
