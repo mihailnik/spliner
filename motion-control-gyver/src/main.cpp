@@ -22,6 +22,8 @@ bool blinkStatus = false;
 byte mode = DIST_MODE;
 byte mainDir = STOP_NOW;
 int channels[5][6]; // status | speed | dir | accel | dist | old_status
+int channels_old[5][6]; // status | speed | dir | accel | dist | old_status
+bool changed = false; // произошли изменения параметров
 const int resistors_count = 9;
 const int channels_count = 5;
 Sensor* resistors[resistors_count];
@@ -579,6 +581,7 @@ void sendAcc(){
     sendData();
 }
 
+// если пакет передачи изменился возвращаем true
 bool isDataChanged(){
   bool res = false; 
   for (byte i = 0; i < channels_count; i++) {
@@ -592,7 +595,7 @@ bool isDataChanged(){
 
 void sendData(){  // Отправка с пульта в терминал и на робот на робот
   
-  if(isDataChanged() || mode == STOP_MOTION_MODE){
+  if(isDataChanged(){
     Serial.print("Data: ");
     Serial.print(data[0]);
     Serial.print(" | ");
