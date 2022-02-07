@@ -170,7 +170,7 @@ void loop() {
     readStopRunButton();
     blinkFunc();
     if(mode == SPEED_MODE){
-      editMode();
+      speedMode();
     } else if (mode == RUN_MODE) {
       runMode();
     } else if (mode == LIVE_MODE) {
@@ -491,7 +491,7 @@ void stopMotionMode(){
   //sendSpeed(invert);
 }
 
-void editMode(){
+void speedMode(){
   readChannels();
   showValues();
 }
