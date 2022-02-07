@@ -11,8 +11,8 @@ byte _up = 50;
 
 // буфер данных для nrf24l01
 const byte dataCount = 7;         
-uint16_t data[dataCount];
-uint16_t prevData[dataCount];
+int data[dataCount];
+int prevData[dataCount];
 
 // переменные для функции мигания
 unsigned long previousMillis = 0; 
@@ -22,8 +22,8 @@ bool blinkStatus = false;
 byte mode = DIST_MODE;
 byte mainDir = STOP_NOW;
 int channels[5][6]; // status | speed | dir | accel | dist | old_status
-int channels_old[5][6]; // status | speed | dir | accel | dist | old_status
-bool changed = false; // произошли изменения параметров
+bool changed_mu_dir = false; // произошли изменения параметров
+bool change_res = false; // произошли изменения 
 const int resistors_count = 9;
 const int channels_count = 5;
 Sensor* resistors[resistors_count];
@@ -263,17 +263,24 @@ int getValueById(byte id){
   return resistors[id]->isFullRange ? dirCorrection(resistors[id]->value, channels[id][c_dir]) : resistors[id]->value;
 }
 
+//считываем резистор скорости а если Live то джойстик, и если были изменения то change_res
 void readResistors(){
+  int val =0;
   for (byte i = 0; i < channels_count; i++) {
     if(channels[i][c_status] != s_off && channels[i][c_status] != s_key_speed){
       if(channels[i][c_status] == s_live){
         byte id = getLiveId(i);
-        channels[i][c_speed] = getValueById(id);
+        val = getValueById(id);
       } else {
-        channels[i][c_speed] = getValueById(i);
+        val = getValueById(i);
       }
     }
+      if(channels[i][c_speed] != val){
+         channels[i][c_speed] = val;
+         change_res = true;
+        }
   }
+
 }
 
 int dispSpeed = 0;
@@ -290,20 +297,24 @@ int getKeybordSpeed(){
   return dispSpeed;
 }
 
+// читаем кнопки MUTE, DIR каждого канала, если dir поменялись то отправляем их
 void readMuteDirButtons(){
+  int st = 0;
   for (byte i = 0; i < channels_count; i++) {
-    
+    // если не нажата то статус = выкл, иначе если предыдущий статус (live или active) если предыдущий выкл то Active
     if(!muteButtons[i]->getState()){
       channels[i][c_status] = s_off;
     } else {
       channels[i][c_old_status] ? channels[i][c_status] = channels[i][c_old_status] : channels[i][c_status] = s_active;
+      changed_mu_dir = true; // произошли изменения параметров
     }
     
-    //меняем Dir при включенной оси
-    if(channels[i][c_status] != s_off){
-      channels[i][c_dir] = dirButtons[i]->getState();
-    }
-    
+    //меняем Dir 
+    st = dirButtons[i]->getState();
+    if(channels[i][c_dir] != st){
+      channels[i][c_dir] = st;
+      sendDir();
+    } 
   }
 }
 
@@ -357,6 +368,7 @@ void readStopRunButton(){
 //    delay(50);
 }
 
+// читаем SPEED(резистор или джойстик),DIR,MUTE каждого канала
 void readChannels(){
   readResistors();
   readMuteDirButtons();
@@ -536,6 +548,7 @@ void liveControl(){
     sendData();
 }
 
+// меняем направление
 void setDataForSend(bool invert){
   for (byte i = 0; i < channels_count; i++) {
     bool dir = invert ? channels[i][c_dir] : !channels[i][c_dir];
@@ -563,14 +576,14 @@ void sendSpeed(bool invert){
     }
     data[c_format] = SPEED_FORMAT;
     sendData();
-    
-//    for (byte i = 0; i < channels_count; i++) {
-//      bool dir = invert ? channels[i][c_dir] : !channels[i][c_dir];
-//      data[i] = channels[i][c_status] != s_off ? dirCorrection(channels[i][c_speed], dir) : 512;
-//    }
-//    data[c_format] = EMPTY_FORMAT;  
-//    sendData();
- // }
+}
+
+void sendDir(){
+    for (byte l = 0; l < channels_count; l++) {
+        data[l] = channels[l][c_dir];
+    }
+    data[c_format] = DIR_FORMAT;
+    sendData();
 }
 
 void sendAcc(){
@@ -581,7 +594,7 @@ void sendAcc(){
     sendData();
 }
 
-// если пакет передачи изменился возвращаем true
+// если пакет передачи отличается от предыдущего возвращаем true
 bool isDataChanged(){
   bool res = false; 
   for (byte i = 0; i < channels_count; i++) {
@@ -595,7 +608,7 @@ bool isDataChanged(){
 
 void sendData(){  // Отправка с пульта в терминал и на робот на робот
   
-  if(isDataChanged(){
+  if(isDataChanged()){
     Serial.print("Data: ");
     Serial.print(data[0]);
     Serial.print(" | ");

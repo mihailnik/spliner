@@ -30,9 +30,9 @@ int currentNod = 0;
 int currentLift = 0;
 int currentClock = 0;
 
-AccelStepper MotorNod(1, 9, 34); 
-AccelStepper MotorLift(1, 6, 37);
-AccelStepper MotorClock(1, 8, 35);
+AccelStepper MotorNod(34, 9, 34); 
+AccelStepper MotorLift(37, 6, 37);
+AccelStepper MotorClock(35, 8, 35);
 
 float correction1 = 1.0; // Kivok
 float correction2 = 4.0; // Karusel
@@ -100,8 +100,10 @@ void setup(){
   MotorClock.setAcceleration(1000);
 
   // set Dir for Lift
-  PORTC|=(1<<0);
- // PORTC&=~(1<<1);  // реверс для второго лифта
+ // PORTC|=(1<<0);
+ // PORTC|=(1<<2);
+
+  //PORTC&=~(1<<1);  // реверс для второго лифта
 }
 
 void logInput(){
@@ -182,7 +184,7 @@ void loop()
     if (MotorClock.distanceToGo() != 0){
       MotorClock.run();
     }else{
-      MotorClock.setPinsInverted(dir_Clock==0,false, false);} // обновляем направление вращения двигателя
+      PORTC|=(1<<2);} // обновляем направление вращения двигателя
 
     if (MotorLift.distanceToGo() != 0){
       MotorLift.run();
