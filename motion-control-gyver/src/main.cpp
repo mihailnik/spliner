@@ -228,6 +228,7 @@ void stopMode(){
 
 // режим перемещения выставленными шагами 
 void stopMotionMode(){
+int tmpTarget=0;
   uint8_t btn = readStopRunButtons();
    if (btn == BTN_STOP_NOW) {
      sendData(PAUSE_FORMAT, c_dir );
@@ -239,8 +240,6 @@ void stopMotionMode(){
              stopTrig = false;
               if (dirTrig==BTN_TO_THE_LEFT){
               }else if(dirTrig==BTN_TO_THE_RIGHT) {
-                dirTrig = BTN_TO_THE_LEFT;
-                int tmpTarget=0;
                   for (byte i = 0; i < channels_count; i++) {
                       tmpTarget = channels[i][c_old_target];
                      channels[i][c_old_target] = channels[i][c_target];
@@ -260,10 +259,39 @@ void stopMotionMode(){
                      }
                     }
             }
+            dirTrig = BTN_TO_THE_LEFT;
             sendData(REPEAT_FORMAT, c_target);
-
-
-     }else if(btn == BTN_TO_THE_RIGHT){//идем к левой цели если она больше 0, или идем к 0, следующая левая уменьшается на dist
+       }
+    else if(btn == BTN_TO_THE_RIGHT){//идем к левой цели если она больше 0, или идем к 0, следующая левая уменьшается на dist
+      
+          if (stopTrig){ // была ли кнопка стоп
+             stopTrig = false;
+              if (dirTrig==BTN_TO_THE_RIGHT){
+              }else if(dirTrig==BTN_TO_THE_LEFT) {
+                  for (byte i = 0; i < channels_count; i++) {
+                      tmpTarget = channels[i][c_old_target];
+                     channels[i][c_old_target] = channels[i][c_target];
+                     channels[i][c_target] = tmpTarget;
+                     }
+                }
+            } else {
+                tmpTarget = channels[c_lift][c_dist] + channels[c_lift][c_target] ;
+облечь этот if в for выводя где лимит сработал, поканально
+              if (channels[c_lift][c_limit] > tmpTarget ) { // проверяем что бы не слететь с рельс по одному каналу - ЛИФТ
+                 for (byte i = 0; i < channels_count; i++) {
+                     channels[i][c_old_target] = channels[i][c_target];
+                     channels[i][c_target] += channels[i][c_dist];
+                     }
+              }else{
+                 for (byte i = 0; i < channels_count; i++) {
+                     channels[i][c_old_target] = channels[i][c_target];
+                     channels[i][c_target] = 0;
+                     }
+                    }
+            }
+            dirTrig = BTN_TO_THE_RIGHT;
+            sendData(REPEAT_FORMAT, c_target);
+       }
 
 
      }
