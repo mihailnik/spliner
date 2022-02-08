@@ -20,10 +20,13 @@
 #define c_speed 1
 #define c_dir 2
 #define c_accel 3
-#define c_dist 4
-#define c_diststep 5
-#define c_mode 6
+#define c_target 4
+#define c_old_target 5
+#define c_dist 6
+#define c_limit 7
+#define c_mode 8
 
+//chanel mode rows
 #define m_off 0
 #define m_en 1
 #define m_active 2
@@ -31,6 +34,7 @@
 #define m_key_speed 4
 #define m_repeat 5
 
+//data rows
 #define c_clock 0
 #define c_nod 1 // kivok
 #define c_lift 2
@@ -39,6 +43,7 @@
 #define c_empty 5
 #define c_format 6
 
+//live rows
 #define l_clock 8
 #define l_nod 6 // kivok
 #define l_carousel 7
@@ -170,9 +175,9 @@ const uint8_t SEG_REPT[] = {
 #define ACC_MODE 5
 #define STOP_MOTION_MODE 6
 
-#define TO_THE_LEFT_BTN 4
-#define TO_THE_RIGHT_BTN 5
-#define STOP_NOW_BTN 6
+#define BTN_TO_THE_LEFT 4
+#define BTN_TO_THE_RIGHT 5
+#define BTN_STOP_NOW 6
 
 const byte ROWS = 4; 
 const byte COLS = 3; 

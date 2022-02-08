@@ -19,9 +19,12 @@ unsigned long previousMillis = 0;
 const long interval = 1000;
 bool blinkStatus = false;
 
-byte mode = DIST_MODE;
-byte mainDir = STOP_NOW_BTN;
-int channels[5][7]; // en | speed | dir | accel | dist | dist_step | mode
+byte mode = STOP_MOTION_MODE;
+byte dirTrig = BTN_TO_THE_LEFT;
+bool stopTrig = false;
+int tmpTarget = 0;
+int tmpChannels[5][9]; // en | speed | dir | accel | left_target | target | right_target | dist_step | limit | mode
+int channels[5][9]; // en | speed | dir | accel | left_target | target | right_target | dist_step | limit | mode
 const int resistors_count = 9;
 const int channels_count = 5;
 Sensor* resistors[resistors_count];
@@ -207,10 +210,10 @@ void distMode(){
   readEnButtons();
   showValues(c_accel);
   bool invert = false;
-  if(mainDir == TO_THE_LEFT_BTN){
+  if(dirTrig == BTN_TO_THE_LEFT){
     invert = true;
     setDataForSend(invert);
-  } else if (mainDir == TO_THE_RIGHT_BTN){
+  } else if (dirTrig == BTN_TO_THE_RIGHT){
     invert = false;
     setDataForSend(invert);
   } 
@@ -223,8 +226,48 @@ void stopMode(){
     sendData(STOP_FORMAT, c_empty);
 }
 
+// режим перемещения выставленными шагами 
 void stopMotionMode(){
-   if( readStopRunButtons() == STOP_NOW_BTN){sendData(PAUSE_FORMAT,c_dir );}
+  uint8_t btn = readStopRunButtons();
+   if (btn == BTN_STOP_NOW) {
+     sendData(PAUSE_FORMAT, c_dir );
+     stopTrig = true; // запоминаем что был стоп что бы потом не вычислять цель а доехать/вернуться к старой
+     }
+   else if (btn == BTN_TO_THE_LEFT)//идем к левой цели если она больше 0, или идем к 0, следующая левая уменьшается на dist
+      {
+          if (stopTrig){ // была ли кнопка стоп
+             stopTrig = false;
+              if (dirTrig==BTN_TO_THE_LEFT){
+              }else if(dirTrig==BTN_TO_THE_RIGHT) {
+                dirTrig = BTN_TO_THE_LEFT;
+                int tmpTarget=0;
+                  for (byte i = 0; i < channels_count; i++) {
+                      tmpTarget = channels[i][c_old_target];
+                     channels[i][c_old_target] = channels[i][c_target];
+                     channels[i][c_target] = tmpTarget;
+                     }
+                }
+            } else {
+              if (channels[c_lift][c_dist] > channels[c_lift][c_target]) { // проверяем что бы не слететь с рельс по одному каналу - ЛИФТ
+                 for (byte i = 0; i < channels_count; i++) {
+                     channels[i][c_old_target] = channels[i][c_target];
+                     channels[i][c_target] -= channels[i][c_dist];
+                     }
+              }else{
+                 for (byte i = 0; i < channels_count; i++) {
+                     channels[i][c_old_target] = channels[i][c_target];
+                     channels[i][c_target] = 0;
+                     }
+                    }
+            }
+            sendData(REPEAT_FORMAT, c_target);
+
+
+     }else if(btn == BTN_TO_THE_RIGHT){//идем к левой цели если она больше 0, или идем к 0, следующая левая уменьшается на dist
+
+
+     }
+     
   // шлем изменения кнопок En, Dir
   if(readDirButtons()){sendData(DIR_FORMAT, c_dir);  } 
   if(readEnButtons()){sendData(EN_FORMAT, c_en );  } 
@@ -239,14 +282,14 @@ void stopMotionMode(){
 int8_t readStopRunButtons(){
   uint8_t btn = 0;
     if (stopRiskBtn->getState()){
-      btn = STOP_NOW_BTN;
+      btn = BTN_STOP_NOW;
       display_time.setSegments(SEG_STOP);
     }else if(leftTimeRiskBtn->getState()){
       display_time.setSegments(SEG_LEFT);
-      btn = TO_THE_LEFT_BTN;
+      btn = BTN_TO_THE_LEFT;
     } else if (rightTimeRiskBtn->getState()){
       display_time.setSegments(SEG_RIGH);
-      btn = TO_THE_RIGHT_BTN;
+      btn = BTN_TO_THE_RIGHT;
     }
  return btn;
 }
@@ -374,7 +417,7 @@ void liveControl(){
 //    showValues();
     setDataForSend(true);
     data[c_format] = LIVE_FORMAT;
-    sendData(LIVE_FORMAT,c_dist);
+    sendData(LIVE_FORMAT, c_target);
 }
 
 void sendData(uint8_t format, uint8_t param_index ){  // Отправка с пульта в терминал и на робот на робот
@@ -501,7 +544,7 @@ void _encode(byte id){
 
 uint16_t dirCorrection(uint16_t _speed, bool dir){
   uint16_t speed_value;
-  dir = mainDir == TO_THE_LEFT_BTN ? dir : !dir;
+  dir = dirTrig == BTN_TO_THE_LEFT ? dir : !dir;
   
   if(dir){
     speed_value = map(speed_value, 0, 1023, 512, 1023);
