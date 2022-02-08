@@ -20,7 +20,7 @@ const long interval = 1000;
 bool blinkStatus = false;
 
 byte mode = DIST_MODE;
-byte mainDir = STOP_NOW;
+byte mainDir = STOP_NOW_BTN;
 int channels[5][6]; // en | speed | dir | accel | dist | mode
 bool changed_mu_dir = false; // произошли изменения параметров
 bool change_res = false; // произошли изменения 
@@ -172,80 +172,14 @@ void loop() {
 //  display_time.setSegments(SEG_EDIT);
 
 // Вызываем режим который хотим при инициализации
-  setDistMode();
+  setStopmMotionMode();
   while(1){
-    readStopRunButton();
     ModeSwicher();
     blinkFunc();
   }
 }
 
-void encoderRead0(void) {
-  _encode(0);
-}
 
-void encoderRead1(void) {
-  _encode(1);
-}
-
-void encoderRead2(void) {
-  _encode(2);
-}
-
-void encoderRead3(void) {
-  _encode(3);
-}
-
-void encoderRead4(void) {
-  _encode(4);
-}
-
-void _encode(byte id){
-  encoders[id][_currentStateCLK] = digitalRead(encoders[id][_CLK]);
-  if (encoders[id][_currentStateCLK] != encoders[id][_lastStateCLK]  && encoders[id][_currentStateCLK] == 1){
-    digitalRead(encoders[id][_DT]) != encoders[id][_currentStateCLK] ? encoders[id][_counter] += _up : encoders[id][_counter] -=_up;
-    channels[id][c_dist] = encoders[id][_counter];
-  }
-  encoders[id][_lastStateCLK] = encoders[id][_currentStateCLK];
-}
-
-
-uint16_t dirCorrection(uint16_t _speed, bool dir){
-  uint16_t speed_value;
-  dir = mainDir == TO_THE_LEFT ? dir : !dir;
-  
-  if(dir){
-    speed_value = map(speed_value, 0, 1023, 512, 1023);
-  } else {
-    speed_value = map(speed_value, 0, 1023, 512, 0);
-  }
-  return speed_value;
-}
-
-uint16_t distCorrection(uint16_t _dist, byte dir){
-  if(!dir){
-    _dist = 0;
-  }
-  return _dist;
-}
-
-byte getLiveId(byte id){
-  byte liveId = 0;
-  switch(id){
-    case c_clock : liveId = l_clock; break;
-    case c_nod : liveId = l_nod; break;
-    case c_carousel : liveId = l_carousel; break;
-    case c_rail : liveId = l_rail; break;
-    default : liveId = id;
-  }
-  return liveId;
-}
-
-
-int getValueById(byte id){
-  resistors[id]->readValue();
-  return resistors[id]->isFullRange ? dirCorrection(resistors[id]->value, channels[id][c_dir]) : resistors[id]->value;
-}
 
 //считываем резистор скорости изменения то отправляем
 void readResistors(){
@@ -263,8 +197,8 @@ void readResistors(){
     if(changes) sendSpeed();
 }
 
-int dispSpeed = 0;
 int getKeybordSpeed(){
+int dispSpeed = 0;
   byte curNum = convertToNumber(customKey);
   if(curNum != 250){    
     if(dispSpeed == 0){
@@ -332,10 +266,10 @@ void distMode(){
   readMuteDirButtons();
   showValues();
   bool invert = false;
-  if(mainDir == TO_THE_LEFT){
+  if(mainDir == TO_THE_LEFT_BTN){
     invert = true;
     setDataForSend(invert);
-  } else if (mainDir == TO_THE_RIGHT){
+  } else if (mainDir == TO_THE_RIGHT_BTN){
     invert = false;
     setDataForSend(invert);
   } 
@@ -344,11 +278,30 @@ void distMode(){
 }
 
 void stopMotionMode(){
+   if( readStopRunButton()==STOP_NOW_BTN)
   uint8_t btn = 0;
   readMuteDirButtons(); // если были изменения функция отправит внутри себя
   if (readResistors()){
       showValues();
   }
+}
+
+// Читаем кнопки << , STOP, >>. Если стоп сразу отправляем.
+// Если <<  или  >> то btn=LEFT RIGHT, выводи на дисп rigt left stop
+uint8_t readStopRunButton(){
+  uint8_t btn = 0;
+    if (stopRiskBtn->getState()){
+      btn = STOP_NOW_BTN;
+      display_time.setSegments(SEG_STOP);
+      data[c_format] = STOP_FORMAT;
+    }else if(leftTimeRiskBtn->getState()){
+      display_time.setSegments(SEG_LEFT);
+      btn = TO_THE_LEFT_BTN;
+    } else if (rightTimeRiskBtn->getState()){
+      display_time.setSegments(SEG_RIGH);
+      btn = TO_THE_RIGHT_BTN;
+    }
+ return btn;
 }
 
 void speedMode(){
@@ -367,11 +320,11 @@ void runMode(){
   readResistors();
   showValues();
   
-  if(mainDir == TO_THE_LEFT){
+  if(mainDir == TO_THE_LEFT_BTN){
     setDataForSend(true);
-  } else if (mainDir == TO_THE_RIGHT){
+  } else if (mainDir == TO_THE_RIGHT_BTN){
     setDataForSend(false);
-  } else if (mainDir == STOP_NOW) {
+  } else if (mainDir == STOP_NOW_BTN) {
     stopMode();
     mode = SPEED_MODE;
     display_time.setSegments(SEG_EDIT);
@@ -548,27 +501,6 @@ void showValues(){
   }
 }
 
-// Читаем кнопки << , STOP, >>. Если стоп сразу отправляем.
-// Если <<  или  >> то btn=LEFT RIGHT, выводи на дисп rigt left stop
-int readStopRunButton(){
-  int btn = 0;
-
-    if (stopRiskBtn->getState()){
-      btn = STOP_NOW;
-      display_time.setSegments(SEG_STOP);
-      data[c_format] = STOP_FORMAT;
-      sendData();
-      break;
-    }else if(leftTimeRiskBtn->getState()){
-      display_time.setSegments(SEG_LEFT);
-      btn = TO_THE_LEFT;
-      break;
-    } else if (rightTimeRiskBtn->getState()){
-      display_time.setSegments(SEG_RIGH);
-      btn = TO_THE_RIGHT;
-    }
- return btn;
-}
 
 void showTime(){
   if(millis()%1000==0){
@@ -595,4 +527,70 @@ byte convertToNumber(char numChar){
     case '9' : num = 9; break;
   }
   return num;
+}
+
+void encoderRead0(void) {
+  _encode(0);
+}
+
+void encoderRead1(void) {
+  _encode(1);
+}
+
+void encoderRead2(void) {
+  _encode(2);
+}
+
+void encoderRead3(void) {
+  _encode(3);
+}
+
+void encoderRead4(void) {
+  _encode(4);
+}
+
+void _encode(byte id){
+  encoders[id][_currentStateCLK] = digitalRead(encoders[id][_CLK]);
+  if (encoders[id][_currentStateCLK] != encoders[id][_lastStateCLK]  && encoders[id][_currentStateCLK] == 1){
+    digitalRead(encoders[id][_DT]) != encoders[id][_currentStateCLK] ? encoders[id][_counter] += _up : encoders[id][_counter] -=_up;
+    channels[id][c_dist] = encoders[id][_counter];
+  }
+  encoders[id][_lastStateCLK] = encoders[id][_currentStateCLK];
+
+uint16_t dirCorrection(uint16_t _speed, bool dir){
+  uint16_t speed_value;
+  dir = mainDir == TO_THE_LEFT_BTN ? dir : !dir;
+  
+  if(dir){
+    speed_value = map(speed_value, 0, 1023, 512, 1023);
+  } else {
+    speed_value = map(speed_value, 0, 1023, 512, 0);
+  }
+  return speed_value;
+}
+
+uint16_t distCorrection(uint16_t _dist, byte dir){
+  if(!dir){
+    _dist = 0;
+  }
+  return _dist;
+}
+
+byte getLiveId(byte id){
+  byte liveId = 0;
+  switch(id){
+    case c_clock : liveId = l_clock; break;
+    case c_nod : liveId = l_nod; break;
+    case c_carousel : liveId = l_carousel; break;
+    case c_rail : liveId = l_rail; break;
+    default : liveId = id;
+  }
+  return liveId;
+}
+
+
+int getValueById(byte id){
+  resistors[id]->readValue();
+  return resistors[id]->isFullRange ? dirCorrection(resistors[id]->value, channels[id][c_dir]) : resistors[id]->value;
+}
 }

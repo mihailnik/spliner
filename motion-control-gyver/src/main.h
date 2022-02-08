@@ -25,12 +25,36 @@
 #include "encoder.h"
 #include "PinChangeInterrupt.h"
 
+void blinkFunc(void);
+byte convertToNumber(char numChar);
+uint16_t dirCorrection(uint16_t _speed, bool dir);
+uint16_t distCorrection(uint16_t _dist, byte dir);
+void distMode(void);
+void displayChannel(byte id, const char *title);
+void displayChannel(byte id, int value);
 void encoderRead0(void);
 void encoderRead1(void);
 void encoderRead2(void);
 void encoderRead3(void);
 void encoderRead4(void);
 void _encode(byte id);
+bool isDataChanged(void);
+int getValueById(byte id);
+byte getLiveId(byte id);
+void liveControl(void);
+void setStopmMotionMode(void);
+void setDistMode(void);
+void setAccMode(void);
+void setSpeedMode(void);
+void stopMotionMode(void);
+void stopMode(void);
+void runMode(void);
+void speedMode(void);
+void accMode(void);
+void readChannels(void);
+int8_t readStopRunButton(void);
+void readMuteDirButtons(void);
+bool readResistors(void);
 void setDataForSend(bool invert);
 void sendData(void);
 void sendDir(void);
@@ -39,30 +63,6 @@ void sendAcc(void);
 void showTime(void);
 void showValues(void);
 void setLiveMode(void);
-void liveControl(void);
-void setStopmMotionMode(void);
-void setDistMode(void);
-void setAccMode(void);
-void setSpeedMode(void);
-bool isDataChanged(void);
-void blinkFunc(void);
-void stopMotionMode(void);
-void stopMode(void);
-void runMode(void);
-void speedMode(void);
-void accMode(void);
-void distMode(void);
-void displayChannel(byte id, const char *title);
-void displayChannel(byte id, int value);
-void readChannels(void);
-void readStopRunButton(void);
-void readMuteDirButtons(void);
-bool readResistors(void);
-int getValueById(byte id);
-byte convertToNumber(char numChar);
-byte getLiveId(byte id);
-uint16_t distCorrection(uint16_t _dist, byte dir);
-uint16_t dirCorrection(uint16_t _speed, bool dir);
 void ModeSwicher(void);
 
 #endif

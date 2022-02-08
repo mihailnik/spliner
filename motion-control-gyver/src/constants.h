@@ -166,9 +166,9 @@ const uint8_t SEG_REPT[] = {
 #define ACC_MODE 5
 #define STOP_MOTION_MODE 6
 
-#define TO_THE_LEFT 4
-#define TO_THE_RIGHT 5
-#define STOP_NOW 6
+#define TO_THE_LEFT_BTN 4
+#define TO_THE_RIGHT_BTN 5
+#define STOP_NOW_BTN 6
 
 const byte ROWS = 4; 
 const byte COLS = 3; 
