@@ -24,10 +24,11 @@
 #define c_mode 5
 
 #define m_off 0
-#define m_active 1
-#define m_live 2
-#define m_key_speed 3
-#define m_repeat 4
+#define m_en 1
+#define m_active 2
+#define m_live 3
+#define m_key_speed 4
+#define m_repeat 5
 
 #define c_clock 0
 #define c_nod 1 // kivok

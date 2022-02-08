@@ -29,7 +29,7 @@ const int channels_count = 5;
 Sensor* resistors[resistors_count];
 
 Button* dirButtons[channels_count];
-Button* muteButtons[channels_count]; 
+Button* enButtons[channels_count]; 
 Button* encoderButtons[channels_count];
 
 Button* leftTimeRiskBtn;
@@ -93,19 +93,19 @@ void setup() {
   resistors[l_clock] = new Sensor(A9, 490, 530); // Z_Axis
 
   dirButtons[0] = new Button(30); 
-  muteButtons[0] = new Button(31, true);
+  enButtons[0] = new Button(31, true);
   
   dirButtons[1] = new Button(34);
-  muteButtons[1] = new Button(35, true);
+  enButtons[1] = new Button(35, true);
   
   dirButtons[2] = new Button(38);
-  muteButtons[2] = new Button(39, true);
+  enButtons[2] = new Button(39, true);
   
   dirButtons[3] = new Button(43);
-  muteButtons[3] = new Button(41, true);
+  enButtons[3] = new Button(41, true);
   
   dirButtons[4] = new Button(47);
-  muteButtons[4] = new Button(45, true);
+  enButtons[4] = new Button(45, true);
 
   //joiButtons = new Button(46);
 
@@ -179,72 +179,16 @@ void loop() {
   }
 }
 
-
-
-//считываем резистор скорости изменения то отправляем
-void readResistors(){
-  int val =0;
-  bool changes = false;
-  for (byte i = 0; i < channels_count; i++) {
-    if(channels[i][c_en] != m_off{
-        val = getValueById(i);
-        if(channels[i][c_speed] != val){
-           channels[i][c_speed] = val;
-          changes = true;
-          }
-     }
-  }
-    if(changes) sendSpeed();
-}
-
-int getKeybordSpeed(){
-int dispSpeed = 0;
-  byte curNum = convertToNumber(customKey);
-  if(curNum != 250){    
-    if(dispSpeed == 0){
-      dispSpeed = curNum;
-    } else {
-      dispSpeed = dispSpeed * 10 + curNum;
-    }
-  }
-  
-  return dispSpeed;
-}
-
-// читаем кнопки MUTE, DIR каждого канала, если dir поменялись то отправляем их
-void readMuteDirButtons(){
-  uint8_t st = 0;
-  bool chng_en = false;
-  bool chng_dir = false;
-  for (byte i = 0; i < channels_count; i++) {
-
-    //читаем En, если изменилось то сохраняем и шлем
-    st = muteButtons[i]->getState();
-    if(chanels[i][c_en] != st){
-      chng_en = true;
-      channels[i][c_en] = st;
-    } 
-    
-    //читаем Dir, если изменилось то сохраняем и шлем
-    st = dirButtons[i]->getState();
-    if(channels[i][c_dir] != st){
-      chng_dir = true;
-      channels[i][c_dir] = st;
-    } 
-  }
-      if(chng_dir){sendDir();}
-      if(chng_en){sendEn();}
-}
-
 // Переключаем кнопкой "#" и "тикаем" активный режим
 void ModeSwicher(){
   customKey = customKeypad.getKey();
   if (customKey == '#'){ // Переключаем режим кнопкой "#"
-    if(mode == DIST_MODE)             {setStopmMotionMode(); }
+    if(mode == DIST_MODE)             {setStopMode(); }
 //    else if(mode == STOP_MOTION_MODE) {setLiveMode(); }
 //    else if(mode == LIVE_MODE)        {setSpeedMode(); }
 //    else if(mode == SPEED_MODE)       {setAccMode(); }
 //    else if(mode == ACC_MODE)         {setDistMode(); }
+   else if(mode == STOP_MODE)         {setStopmMotionMode(); }
    else if(mode == STOP_MOTION_MODE)         {setDistMode(); }
     }
 
@@ -255,6 +199,7 @@ void ModeSwicher(){
   else if  (mode == DIST_MODE)         { distMode(); } 
   else if  (mode == ACC_MODE)          { accMode(); } 
   else if  (mode == STOP_MOTION_MODE)  { stopMotionMode(); }
+  else if  (mode == STOP_MODE)  { stopMode(); }
 
   //  // if (customKey == '*'){
   //     mode = LIVE_MODE;
@@ -263,8 +208,9 @@ void ModeSwicher(){
 
 void distMode(){
   readResistors();
-  readMuteDirButtons();
-  showValues();
+  readDirButtons();
+  readEnButtons();
+  showValues(c_accel);
   bool invert = false;
   if(mainDir == TO_THE_LEFT_BTN){
     invert = true;
@@ -277,23 +223,33 @@ void distMode(){
   sendSpeed(invert);
 }
 
+void stopMode(){
+  for (byte i = 0; i < channels_count; i++) {
+    data[i] = 512;
+  }
+  data[c_format] = STOP_FORMAT;
+  sendData();
+}
+
 void stopMotionMode(){
-   if( readStopRunButton()==STOP_NOW_BTN)
+   if( readStopRunButtons() ==STOP_NOW_BTN)
   uint8_t btn = 0;
-  readMuteDirButtons(); // если были изменения функция отправит внутри себя
+  // шлем изменения кнопок En, Dir
+  if(readDirButtons()){sendDir();  } 
+  if(readEnButtons()){sendEn();  } 
+
   if (readResistors()){
-      showValues();
+      showValues(c_accel);
   }
 }
 
 // Читаем кнопки << , STOP, >>. Если стоп сразу отправляем.
 // Если <<  или  >> то btn=LEFT RIGHT, выводи на дисп rigt left stop
-uint8_t readStopRunButton(){
+int8_t readStopRunButtons(){
   uint8_t btn = 0;
     if (stopRiskBtn->getState()){
       btn = STOP_NOW_BTN;
       display_time.setSegments(SEG_STOP);
-      data[c_format] = STOP_FORMAT;
     }else if(leftTimeRiskBtn->getState()){
       display_time.setSegments(SEG_LEFT);
       btn = TO_THE_LEFT_BTN;
@@ -304,47 +260,84 @@ uint8_t readStopRunButton(){
  return btn;
 }
 
-void speedMode(){
-  readResistors();
-  readMuteDirButtons();
-  showValues();
+// читаем кнопки MUTE, DIR каждого канала, если dir поменялись то отправляем их
+bool readDirButtons(){
+  bool st = 0;
+  bool chng = false;
+  for (byte i = 0; i < channels_count; i++) {
+    //читаем Dir, если изменилось то сохраняем и шлем
+    st = dirButtons[i]->getState();
+    if(channels[i][c_dir] != st){
+      chng = true;
+      channels[i][c_dir] = st;
+    } 
+  }
+  return chng;
 }
 
-void accMode(){
-  readMuteDirButtons();
-  showValues();
-  sendAcc();
+bool readEnButtons(){
+  bool chng = false;
+  bool st = 0;
+  for (byte i = 0; i < channels_count; i++) {
+    //читаем En, если изменилось то сохраняем и шлем
+    st = enButtons[i]->getState();
+    if(channels[i][c_en] != st){
+      chng = true;
+      channels[i][c_en] = st;
+    } 
+  }
+  return chng;
 }
 
-void runMode(){
-  readResistors();
-  showValues();
+//считываем резистор скорости обновляем значения в каналах если изменения то отправляем
+bool readResistors(){
+  int val =0;
+  bool changes = false;
+  for (byte i = 0; i < channels_count; i++) {
+    if(channels[i][c_en] != m_en){
+        val = getValueById(i);
+        if(channels[i][c_speed] != val){
+           channels[i][c_speed] = val;
+          changes = true;
+          }
+     }
+  }
+    return changes;
+}
+
+// void speedMode(){
+//   readResistors();
+//   readMuteDirButtons();
+//   showValues();
+// }
+
+// void accMode(){
+//   readMuteDirButtons();
+//   showValues( c_accel );
+//   sendAcc();
+// }
+
+// void runMode(){
+//   readResistors();
+// //  showValues();
   
-  if(mainDir == TO_THE_LEFT_BTN){
-    setDataForSend(true);
-  } else if (mainDir == TO_THE_RIGHT_BTN){
-    setDataForSend(false);
-  } else if (mainDir == STOP_NOW_BTN) {
-    stopMode();
-    mode = SPEED_MODE;
-    display_time.setSegments(SEG_EDIT);
-  }
-  sendData();
-}
+//   if(mainDir == TO_THE_LEFT_BTN){
+//     setDataForSend(true);
+//   } else if (mainDir == TO_THE_RIGHT_BTN){
+//     setDataForSend(false);
+//   } else if (mainDir == STOP_NOW_BTN) {
+//     stopMode();
+//     mode = SPEED_MODE;
+//     display_time.setSegments(SEG_EDIT);
+//   }
+//   sendData();
+// }
 
-void stopMode(){
+
+
+void setLiveChanelMode(){
   for (byte i = 0; i < channels_count; i++) {
-    data[i] = 512;
-  }
-  data[c_format] = STOP_FORMAT;
-  sendData();
-}
-
-
-void setLiveMode(){
-  for (byte i = 0; i < channels_count; i++) {
-    channels[i][c_status] = s_live;
-    channels[i][c_old_status] = s_live;
+    channels[i][c_mode] = m_live;
     displays[i].setSegments(SEG_LIVE);
   }
   mode = LIVE_MODE;
@@ -352,10 +345,9 @@ void setLiveMode(){
   delay(500);
 }
 
-void setSpeedMode(){
+void setSpeedChanelMode(){
   for (byte i = 0; i < channels_count; i++) {
-    channels[i][c_status] = s_active;
-    channels[i][c_old_status] = s_active;
+    channels[i][c_mode] = m_active;
   }
   mode = SPEED_MODE; // SPEED
   display_time.setSegments(SEG_SPED);
@@ -368,12 +360,17 @@ void setDistMode(){
   delay(500);
 }
 
-void setAccMode(){
+void setAccChanelMode(){
   mode = ACC_MODE;
   display_time.setSegments(SEG_ACC);
   delay(500);
 }
 
+void setStopMode(){
+  mode = STOP_MOTION_MODE;
+  display_time.setSegments(SEG_REPT);
+  delay(500);
+}
 void setStopmMotionMode(){
   mode = STOP_MOTION_MODE;
   display_time.setSegments(SEG_REPT);
@@ -381,9 +378,9 @@ void setStopmMotionMode(){
 }
 
 void liveControl(){    
-    readMuteDirButtons();
+//    readMuteDirButtons();
     readResistors();
-    showValues();
+//    showValues();
     setDataForSend(true);
     data[c_format] = LIVE_FORMAT;
     sendData();
@@ -393,7 +390,7 @@ void liveControl(){
 void sendSpeed(bool invert){
   //if(mainDir != STOP_NOW){
     for (byte l = 0; l < channels_count; l++) {
-        data[l] = channels[l][c_status] != s_off ? channels[l][c_speed] : 0;
+        data[l] = channels[l][c_en] != 0 ? channels[l][c_speed] : 0;
     }
     data[c_format] = SPEED_FORMAT;
     sendData();
@@ -478,25 +475,13 @@ void displayChannel(byte id, const char *title){
   }
 }
 
-void showValues(){
+// выводим на дисплей параметр  en | speed | dir | accel | dist | mode
+void showValues(uint8_t param){
   for (byte i = 0; i < channels_count; i++) {
-    if(channels[i][c_status] == s_off){
+    if(channels[i][c_en] == 0){
       displayChannel(i,"off");
-    } else if(mode == DIST_MODE|| mode == STOP_MOTION_MODE){
-      if(channels[i][c_status] == s_repeat){
-        if(blinkStatus){
-          displayChannel(i, channels[i][c_dist]);
-        } else {
-          displays[i].setSegments(SEG_REPT);
-        }
-      }else{
-        displayChannel(i, channels[i][c_dist]);
-      }
-      
-    } else if(mode == ACC_MODE){
-      displayChannel(i, channels[i][c_accel]);
     } else {
-      displayChannel(i, channels[i][c_speed]);
+      displayChannel(i, channels[i][param]);
     }
   }
 }
@@ -556,6 +541,7 @@ void _encode(byte id){
     channels[id][c_dist] = encoders[id][_counter];
   }
   encoders[id][_lastStateCLK] = encoders[id][_currentStateCLK];
+}
 
 uint16_t dirCorrection(uint16_t _speed, bool dir){
   uint16_t speed_value;
@@ -593,4 +579,17 @@ int getValueById(byte id){
   resistors[id]->readValue();
   return resistors[id]->isFullRange ? dirCorrection(resistors[id]->value, channels[id][c_dir]) : resistors[id]->value;
 }
+
+int getKeybordSpeed(){
+int dispSpeed = 0;
+  byte curNum = convertToNumber(customKey);
+  if(curNum != 250){    
+    if(dispSpeed == 0){
+      dispSpeed = curNum;
+    } else {
+      dispSpeed = dispSpeed * 10 + curNum;
+    }
+  }
+  
+  return dispSpeed;
 }

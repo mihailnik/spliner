@@ -1,14 +1,6 @@
 {
 	"folders": [
 		{
-			"name": "motion-control-board",
-			"path": "motion-control-board"
-		},
-		{
-			"name": "camera-receiver",
-			"path": "camera-receiver"
-		},
-		{
 			"path": "grbl-Mega-5X-edge"
 		},
 		{
