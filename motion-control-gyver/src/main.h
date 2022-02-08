@@ -17,7 +17,7 @@
 #include <nRF24L01.h>
 #include "RF24.h"
 #include <TM1637Display.h>
-#include <iarduino_RTC.h>
+//#include <iarduino_RTC.h>
 #include <Keypad.h>
 #include "constants.h"
 #include "sensor.h"
@@ -58,7 +58,7 @@ bool readEnButtons(void);
 bool readDirButtons(void);
 bool readResistors(void);
 void setDataForSend(bool invert);
-void sendData(void);
+void sendData(uint8_t format, uint8_t param_index );
 void sendDir(void);
 void sendEn(void);
 void sendSpeed(bool invert);

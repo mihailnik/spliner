@@ -21,7 +21,8 @@
 #define c_dir 2
 #define c_accel 3
 #define c_dist 4
-#define c_mode 5
+#define c_diststep 5
+#define c_mode 6
 
 #define m_off 0
 #define m_en 1
@@ -148,16 +149,18 @@ const uint8_t SEG_REPT[] = {
   SEG_F | SEG_E | SEG_D | SEG_G
 };
 
-#define EMPTY_FORMAT -10
-#define LIVE_FORMAT -10
-#define SPEED_FORMAT -20
-#define DIST_FORMAT -30
-#define STOP_FORMAT -40
-#define ACCEL_FORMAT -50
-#define SET_CURRUNT_FORMAT -60
-#define REPEAT_FORMAT -70
-#define DIR_FORMAT -80
-#define EN_FORMAT -90
+#define EMPTY_FORMAT 0
+#define RESET_FORMAT 1
+#define LIVE_FORMAT 1
+#define SPEED_FORMAT 2
+#define DIST_FORMAT 3
+#define STOP_FORMAT 4
+#define PAUSE_FORMAT 5
+#define ACCEL_FORMAT 6
+#define SET_CURRUNT_FORMAT 7
+#define REPEAT_FORMAT 8
+#define DIR_FORMAT 9
+#define EN_FORMAT 10
 
 #define STOP_MODE 0
 #define LIVE_MODE 1

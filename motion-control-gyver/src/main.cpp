@@ -21,9 +21,7 @@ bool blinkStatus = false;
 
 byte mode = DIST_MODE;
 byte mainDir = STOP_NOW_BTN;
-int channels[5][6]; // en | speed | dir | accel | dist | mode
-bool changed_mu_dir = false; // произошли изменения параметров
-bool change_res = false; // произошли изменения 
+int channels[5][7]; // en | speed | dir | accel | dist | dist_step | mode
 const int resistors_count = 9;
 const int channels_count = 5;
 Sensor* resistors[resistors_count];
@@ -37,7 +35,7 @@ Button* rightTimeRiskBtn;
 Button* stopRiskBtn;
 Button* joiButton;
 
-iarduino_RTC time(RTC_DS3231); 
+// iarduino_RTC time(RTC_DS3231); 
 
 Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
@@ -63,8 +61,9 @@ void setup() {
   
   display_time.setBrightness(7);
   
-  time.begin();
-  time.period(1);
+  //time.begin();
+  //time.period(1);
+
   // Connect Radio Channel
   radio.begin();    
   delay(10);  // itit nRF24L01+
@@ -169,7 +168,6 @@ void setup() {
 }
 
 void loop() {
-//  display_time.setSegments(SEG_EDIT);
 
 // Вызываем режим который хотим при инициализации
   setStopmMotionMode();
@@ -193,17 +191,14 @@ void ModeSwicher(){
     }
 
     //"тикаем" активный режим 
-  if        (mode == SPEED_MODE)         { speedMode(); }
-  else if  (mode == RUN_MODE)          { runMode(); }
-  else if  (mode == LIVE_MODE)         { liveControl(); } 
-  else if  (mode == DIST_MODE)         { distMode(); } 
-  else if  (mode == ACC_MODE)          { accMode(); } 
+  if       (mode == STOP_MODE)  { stopMode(); }
   else if  (mode == STOP_MOTION_MODE)  { stopMotionMode(); }
-  else if  (mode == STOP_MODE)  { stopMode(); }
+  else if  (mode == DIST_MODE)         { distMode(); }
+  // else if  (mode == RUN_MODE)          { runMode(); }
+  // else if  (mode == ACC_MODE)          { accMode(); } 
+  // else if  (mode == SPEED_MODE)         { speedMode(); }
+  // else if  (mode == LIVE_MODE)         { liveControl(); } 
 
-  //  // if (customKey == '*'){
-  //     mode = LIVE_MODE;
-  //   }
 }
 
 void distMode(){
@@ -219,24 +214,20 @@ void distMode(){
     invert = false;
     setDataForSend(invert);
   } 
-  sendData();
-  sendSpeed(invert);
 }
 
 void stopMode(){
   for (byte i = 0; i < channels_count; i++) {
     data[i] = 512;
   }
-  data[c_format] = STOP_FORMAT;
-  sendData();
+    sendData(STOP_FORMAT, c_empty);
 }
 
 void stopMotionMode(){
-   if( readStopRunButtons() ==STOP_NOW_BTN)
-  uint8_t btn = 0;
+   if( readStopRunButtons() == STOP_NOW_BTN){sendData(PAUSE_FORMAT,c_dir );}
   // шлем изменения кнопок En, Dir
-  if(readDirButtons()){sendDir();  } 
-  if(readEnButtons()){sendEn();  } 
+  if(readDirButtons()){sendData(DIR_FORMAT, c_dir);  } 
+  if(readEnButtons()){sendData(EN_FORMAT, c_en );  } 
 
   if (readResistors()){
       showValues(c_accel);
@@ -314,7 +305,7 @@ bool readResistors(){
 // void accMode(){
 //   readMuteDirButtons();
 //   showValues( c_accel );
-//   sendAcc();
+//   sendData(ACCEL_FORMAT, c_accel );
 // }
 
 // void runMode(){
@@ -383,45 +374,16 @@ void liveControl(){
 //    showValues();
     setDataForSend(true);
     data[c_format] = LIVE_FORMAT;
-    sendData();
+    sendData(LIVE_FORMAT,c_dist);
 }
 
-// Шлем скорость если канал включен, или "0" если выключен
-void sendSpeed(bool invert){
-  //if(mainDir != STOP_NOW){
-    for (byte l = 0; l < channels_count; l++) {
-        data[l] = channels[l][c_en] != 0 ? channels[l][c_speed] : 0;
-    }
-    data[c_format] = SPEED_FORMAT;
-    sendData();
-}
-
-void sendDir(){
-    for (byte l = 0; l < channels_count; l++) {
-        data[l] = channels[l][c_dir];
-    }
-    data[c_format] = DIR_FORMAT;
-    sendData();
-}
-
-void sendEn(){
-    for (byte l = 0; l < channels_count; l++) {
-        data[l] = channels[l][c_en];
-    }
-    data[c_format] = EN_FORMAT;
-    sendData();
-}
-
-void sendAcc(){
-    for (byte l = 0; l < channels_count; l++) {
-        data[l] = channels[l][c_accel];
-    }
-    data[c_format] = ACCEL_FORMAT;
-    sendData();
-}
-
-void sendData(){  // Отправка с пульта в терминал и на робот на робот
+void sendData(uint8_t format, uint8_t param_index ){  // Отправка с пульта в терминал и на робот на робот
   
+    for (byte l = 0; l < channels_count; l++) {
+        data[l] = channels[l][param_index];
+    }
+    data[c_format] = format;
+
     Serial.print("Data: ");
     Serial.print(data[0]);
     Serial.print(" | ");
@@ -452,50 +414,44 @@ void blinkFunc(){  // Функция меняет blinkStatus с периодо�
 void displayChannel(byte id, int value){
   displays[id].showNumberDec(value, false);
 }
-//вывод на сегментные индикаторы
-void displayChannel(byte id, const char *title){
-  if(title == "done"){
-    displays[id].setSegments(SEG_DONE);
-  } else if(title == "off"){
-    displays[id].setSegments(SEG_OFF);
-  } else if (title == "dir"){
-    displays[id].setSegments(SEG_DIR);
-  } else if(title == "run"){
-    displays[id].setSegments(SEG_RUN);
-  } else if(title == "goo"){
-    displays[id].setSegments(SEG_GOO);
-  } else if(title == "left"){
-    displays[id].setSegments(SEG_LEFT);
-  } else if(title == "right"){
-    displays[id].setSegments(SEG_RIGH);
-  } else if(title == "stop"){
-    displays[id].setSegments(SEG_STOP);
-  } else if(title == "edit"){
-    displays[id].setSegments(SEG_EDIT);
-  }
+//вывод на сегментные индикаторы SEG_DONE,SEG_OFF, SEG_DIR, SEG_RUN, SEG_GOO, SEG_LEFT, SEG_RIGH, SEG_STOP, SEG_EDIT
+void displayChannel(byte id, char * seg){
+   // displays[id].setSegments(seg);
 }
+// void displayChannel(byte id, const char *title){
+//   if(title == "done"){
+//     displays[id].setSegments(SEG_DONE);
+//   } else if(title == "off"){
+//     displays[id].setSegments(SEG_OFF);
+//   } else if (title == "dir"){
+//     displays[id].setSegments(SEG_DIR);
+//   } else if(title == "run"){
+//     displays[id].setSegments(SEG_RUN);
+//   } else if(title == "goo"){
+//     displays[id].setSegments(SEG_GOO);
+//   } else if(title == "left"){
+//     displays[id].setSegments(SEG_LEFT);
+//   } else if(title == "right"){
+//     displays[id].setSegments(SEG_RIGH);
+//   } else if(title == "stop"){
+//     displays[id].setSegments(SEG_STOP);
+//   } else if(title == "edit"){
+//     displays[id].setSegments(SEG_EDIT);
+//   }
+// }
 
 // выводим на дисплей параметр  en | speed | dir | accel | dist | mode
 void showValues(uint8_t param){
   for (byte i = 0; i < channels_count; i++) {
     if(channels[i][c_en] == 0){
-      displayChannel(i,"off");
+      displays[i].setSegments(SEG_OFF);
     } else {
-      displayChannel(i, channels[i][param]);
+      displays[i].showNumberDec(channels[i][param], false);
     }
   }
 }
 
 
-void showTime(){
-  if(millis()%1000==0){
-    //Serial.println(time.gettime("H:i:s, D"));
-    time.gettime();
-    display_time.showNumberDec(time.Hours * 100 + time.minutes, false);
-    //display_time.setSegments(SEG_DP);
-    delay(1);                                            
-  }   
-}
 
 byte convertToNumber(char numChar){
   byte num = 250;
@@ -580,6 +536,18 @@ int getValueById(byte id){
   return resistors[id]->isFullRange ? dirCorrection(resistors[id]->value, channels[id][c_dir]) : resistors[id]->value;
 }
 
+void setDataForSend(bool invert){
+  for (byte i = 0; i < channels_count; i++) {
+    bool dir = invert ? channels[i][c_dir] : !channels[i][c_dir];
+    if(mode == DIST_MODE){
+      data[i] = channels[i][c_en] != m_off ? distCorrection(channels[i][c_dist], dir) : -10;
+    } else {
+      data[i] = channels[i][c_en] != m_off ? channels[i][c_speed] : 512;
+    }
+  }
+ mode == DIST_MODE ? data[c_format] = DIST_FORMAT : data[c_format] = LIVE_FORMAT;
+}
+
 int getKeybordSpeed(){
 int dispSpeed = 0;
   byte curNum = convertToNumber(customKey);
@@ -590,6 +558,16 @@ int dispSpeed = 0;
       dispSpeed = dispSpeed * 10 + curNum;
     }
   }
-  
   return dispSpeed;
 }
+  
+
+// void showTime(){
+//   if(millis()%1000==0){
+//     //Serial.println(time.gettime("H:i:s, D"));
+//     time.gettime();
+//     display_time.showNumberDec(time.Hours * 100 + time.minutes, false);
+//     //display_time.setSegments(SEG_DP);
+//     delay(1);                                            
+//   }   
+// }
