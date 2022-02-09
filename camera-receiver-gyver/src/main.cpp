@@ -137,35 +137,35 @@ void loop()
       MotorNod.tick(); 
       MotorLift.tick(); 
 
-    if(data[c_format] == DIR_FORMAT){
+    if(data[c_format] == FORMAT_DIR){ // инвертируем направление осей(изменится не во время движения)
       dir_Nod = data[c_nod];
       dir_Lift = data[c_lift];
       dir_Clock = data[c_clock];
-    } else if (data[c_format] == SPEED_FORMAT){
+    } else if (data[c_format] == FORMAT_SPEED){
       MotorClock.setMaxSpeed(data[c_clock]);
       MotorLift.setMaxSpeed(data[c_lift]);
       MotorNod.setMaxSpeed(data[c_nod]);
-    } else if (data[c_format] == STOP_FORMAT) {
+    } else if (data[c_format] == FORMAT_STOP){
       MotorClock.stop();
       MotorLift.stop();
       MotorNod.stop();
       return;
-    } else if (data[c_format] == SET_CURRUNT_FORMAT) {
+    } else if (data[c_format] == FORMAT_SET_CURRENT){
       MotorClock.setCurrent(data[c_clock]);
       MotorLift.setCurrent(data[c_lift]);
       MotorNod.setCurrent(data[c_nod]);
       return;
-    } else if (data[c_format] == ACCEL_FORMAT) {
+    } else if (data[c_format] == FORMAT_ACCEL){
       MotorClock.setAcceleration(data[c_clock]);
       MotorLift.setAcceleration(data[c_lift]);
       MotorNod.setAcceleration(data[c_nod]);
       return;
-    } else if(data[c_format] == DIST_FORMAT){
+    } else if(data[c_format] == FORMAT_TARGET){
         MotorClock.setTarget(data[c_clock]);
         MotorLift.setTarget(data[c_lift]);
         MotorNod.setTarget(data[c_nod]);
       return;
-    } else if(data[c_format] == REPEAT_FORMAT){
+    } else if(data[c_format] == FORMAT_REPEAT){
         MotorClock.setTarget(currentLift);
     }
 

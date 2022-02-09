@@ -2,7 +2,6 @@
 
 #include "main.h"
 
-
 byte rowPins[ROWS] = {23, 28, 27, 25}; 
 byte colPins[COLS] = {24, 22, 26};
 char customKey;
@@ -19,11 +18,11 @@ unsigned long previousMillis = 0;
 const long interval = 1000;
 bool blinkStatus = false;
 
-byte mode = STOP_MOTION_MODE;
+byte mode = MODE_STOP_MOTION;
 byte dirTrig = BTN_TO_THE_LEFT;
 bool stopTrig = false;
 int tmpTarget = 0;
-int tmpChannels[5][9]; // en | speed | dir | accel | left_target | target | right_target | dist_step | limit | mode
+const int default_c_limit = 7000;         
 int channels[5][9]; // en | speed | dir | accel | left_target | target | right_target | dist_step | limit | mode
 const int resistors_count = 9;
 const int channels_count = 5;
@@ -173,7 +172,11 @@ void setup() {
 void loop() {
 
 // Вызываем режим который хотим при инициализации
-  setStopmMotionMode();
+     setStopmMotionMode();
+    for (byte i = 0; i < channels_count; i++) {
+      channels[i][c_limit] = default_c_limit;
+    } 
+  
   while(1){
     ModeSwicher();
     blinkFunc();
@@ -184,23 +187,23 @@ void loop() {
 void ModeSwicher(){
   customKey = customKeypad.getKey();
   if (customKey == '#'){ // Переключаем режим кнопкой "#"
-    if(mode == DIST_MODE)             {setStopMode(); }
-//    else if(mode == STOP_MOTION_MODE) {setLiveMode(); }
-//    else if(mode == LIVE_MODE)        {setSpeedMode(); }
-//    else if(mode == SPEED_MODE)       {setAccMode(); }
-//    else if(mode == ACC_MODE)         {setDistMode(); }
-   else if(mode == STOP_MODE)         {setStopmMotionMode(); }
-   else if(mode == STOP_MOTION_MODE)         {setDistMode(); }
+    if(mode == MODE_DIST)             {setStopMode(); }
+//    else if(mode == MODE_STOP_MOTION) {setLiveMode(); }
+//    else if(mode == MODE_LIVE)        {setSpeedMode(); }
+//    else if(mode == MODE_SPEED)       {setAccMode(); }
+//    else if(mode == MODE_ACC)         {setDistMode(); }
+   else if(mode == MODE_STOP)         {setStopmMotionMode(); }
+   else if(mode == MODE_STOP_MOTION)         {setDistMode(); }
     }
 
     //"тикаем" активный режим 
-  if       (mode == STOP_MODE)  { stopMode(); }
-  else if  (mode == STOP_MOTION_MODE)  { stopMotionMode(); }
-  else if  (mode == DIST_MODE)         { distMode(); }
-  // else if  (mode == RUN_MODE)          { runMode(); }
-  // else if  (mode == ACC_MODE)          { accMode(); } 
-  // else if  (mode == SPEED_MODE)         { speedMode(); }
-  // else if  (mode == LIVE_MODE)         { liveControl(); } 
+  if       (mode == MODE_STOP)  { stopMode(); }
+  else if  (mode == MODE_STOP_MOTION)  { stopMotionMode(); }
+  else if  (mode == MODE_DIST)         { distMode(); }
+  // else if  (mode == MODE_RUN)          { runMode(); }
+  // else if  (mode == MODE_ACC)          { accMode(); } 
+  // else if  (mode == MODE_SPEED)         { speedMode(); }
+  // else if  (mode == MODE_LIVE)         { liveControl(); } 
 
 }
 
@@ -220,89 +223,116 @@ void distMode(){
 }
 
 void stopMode(){
-  for (byte i = 0; i < channels_count; i++) {
-    data[i] = 512;
-  }
-    sendData(STOP_FORMAT, c_empty);
+  showValues(c_accel);
+ //    sendData(FORMAT_STOP, c_empty);
 }
 
 // режим перемещения выставленными шагами 
 void stopMotionMode(){
-int tmpTarget=0;
-  uint8_t btn = readStopRunButtons();
-   if (btn == BTN_STOP_NOW) {
-     sendData(PAUSE_FORMAT, c_dir );
-     stopTrig = true; // запоминаем что был стоп что бы потом не вычислять цель а доехать/вернуться к старой
-     }
+    showValues(c_dist);
+    int tmpTarget=0;
+    uint8_t btn = readStopRunButtons();
+    readEnButtons();
+   if (btn == BTN_STOP_NOW)
+   {
+      sendData(FORMAT_PAUSE, c_dir );
+      stopTrig = true; // запоминаем что был стоп что бы потом не вычислять цель а доехать/вернуться к старой
+   }
    else if (btn == BTN_TO_THE_LEFT)//идем к левой цели если она больше 0, или идем к 0, следующая левая уменьшается на dist
+   {
+      if (stopTrig)
+      { // была ли кнопка стоп
+        stopTrig = false;
+        if (dirTrig==BTN_TO_THE_LEFT)
+        {
+          ;
+        }
+        else if(dirTrig==BTN_TO_THE_RIGHT) 
+        {
+          for (byte i = 0; i < channels_count; i++) 
+          {
+            if (channels[i][c_en]==1)
+            {
+              tmpTarget = channels[i][c_old_target];
+              channels[i][c_old_target] = channels[i][c_target];
+              channels[i][c_target] = tmpTarget;
+            }
+          }
+        }
+      } 
+      else 
       {
-          if (stopTrig){ // была ли кнопка стоп
-             stopTrig = false;
-              if (dirTrig==BTN_TO_THE_LEFT){
-              }else if(dirTrig==BTN_TO_THE_RIGHT) {
-                  for (byte i = 0; i < channels_count; i++) {
-                      tmpTarget = channels[i][c_old_target];
-                     channels[i][c_old_target] = channels[i][c_target];
-                     channels[i][c_target] = tmpTarget;
-                     }
-                }
-            } else {
-              if (channels[c_lift][c_dist] > channels[c_lift][c_target]) { // проверяем что бы не слететь с рельс по одному каналу - ЛИФТ
-                 for (byte i = 0; i < channels_count; i++) {
-                     channels[i][c_old_target] = channels[i][c_target];
-                     channels[i][c_target] -= channels[i][c_dist];
-                     }
-              }else{
-                 for (byte i = 0; i < channels_count; i++) {
-                     channels[i][c_old_target] = channels[i][c_target];
-                     channels[i][c_target] = 0;
-                     }
-                    }
+        for (byte i = 0; i < channels_count; i++) 
+        {
+          if (channels[i][c_dist] > channels[i][c_target]) // проверяем что бы не слететь с рельс в "0"-й точке (в начале)
+          { 
+            if (channels[i][c_en]==1)
+            {
+              channels[i][c_old_target] = channels[i][c_target];
+              channels[i][c_target] = 0;
             }
-            dirTrig = BTN_TO_THE_LEFT;
-            sendData(REPEAT_FORMAT, c_target);
-       }
-    else if(btn == BTN_TO_THE_RIGHT){//идем к левой цели если она больше 0, или идем к 0, следующая левая уменьшается на dist
-      
-          if (stopTrig){ // была ли кнопка стоп
-             stopTrig = false;
-              if (dirTrig==BTN_TO_THE_RIGHT){
-              }else if(dirTrig==BTN_TO_THE_LEFT) {
-                  for (byte i = 0; i < channels_count; i++) {
-                      tmpTarget = channels[i][c_old_target];
-                     channels[i][c_old_target] = channels[i][c_target];
-                     channels[i][c_target] = tmpTarget;
-                     }
-                }
-            } else {
-                tmpTarget = channels[c_lift][c_dist] + channels[c_lift][c_target] ;
-облечь этот if в for выводя где лимит сработал, поканально
-              if (channels[c_lift][c_limit] > tmpTarget ) { // проверяем что бы не слететь с рельс по одному каналу - ЛИФТ
-                 for (byte i = 0; i < channels_count; i++) {
-                     channels[i][c_old_target] = channels[i][c_target];
-                     channels[i][c_target] += channels[i][c_dist];
-                     }
-              }else{
-                 for (byte i = 0; i < channels_count; i++) {
-                     channels[i][c_old_target] = channels[i][c_target];
-                     channels[i][c_target] = 0;
-                     }
-                    }
+          }
+          else
+          {
+            if (channels[i][c_en]==1)
+            {
+              channels[i][c_old_target] = channels[i][c_target];
+              channels[i][c_target] -= channels[i][c_dist];
             }
-            dirTrig = BTN_TO_THE_RIGHT;
-            sendData(REPEAT_FORMAT, c_target);
-       }
-
-
-     }
-     
-  // шлем изменения кнопок En, Dir
-  if(readDirButtons()){sendData(DIR_FORMAT, c_dir);  } 
-  if(readEnButtons()){sendData(EN_FORMAT, c_en );  } 
-
-  if (readResistors()){
-      showValues(c_accel);
+          }
+        }
+        dirTrig = BTN_TO_THE_LEFT;
+        sendData(FORMAT_REPEAT, c_target);
+      }
   }
+  else if(btn == BTN_TO_THE_RIGHT)
+  {
+    if (stopTrig)
+    { // была ли кнопка стоп
+      stopTrig = false;
+      if (dirTrig==BTN_TO_THE_RIGHT)
+      {
+      }
+      else if(dirTrig==BTN_TO_THE_LEFT)
+      {
+        for (byte i = 0; i < channels_count; i++)
+        {
+          if (channels[i][c_en]==1)
+          {
+              tmpTarget = channels[i][c_old_target];
+              channels[i][c_old_target] = channels[i][c_target];
+              channels[i][c_target] = tmpTarget;
+          }
+        }
+      }
+      dirTrig = BTN_TO_THE_RIGHT;
+      sendData(FORMAT_REPEAT, c_target);
+    }
+    else
+    {//  облечь этот if в for выводя где лимит сработал, поканально
+      tmpTarget = channels[c_lift][c_dist] + channels[c_lift][c_target] ;
+      if (channels[c_lift][c_limit] > tmpTarget )// проверяем что бы не слететь с рельс в крайней точке Limit
+      {
+        for (byte i = 0; i < channels_count; i++)
+        {
+          if (channels[i][c_en]==1)
+          {
+            channels[i][c_old_target] = channels[i][c_target];
+            channels[i][c_target] += channels[i][c_dist];
+          }
+        }
+        dirTrig = BTN_TO_THE_RIGHT;
+        sendData(FORMAT_REPEAT, c_target);
+      }
+      else
+      {
+        // Не едем в право но Показываем Лимит - конец путей ))
+      }
+    }
+  }
+        // шлем изменения кнопок En, Dir
+  if(readDirButtons()){sendData(FORMAT_DIR, c_dir);  } 
+  if(readResistors()){ sendData(FORMAT_SPEED, c_speed );  }
 }
 
 // Читаем кнопки << , STOP, >>. Если стоп сразу отправляем.
@@ -325,46 +355,46 @@ int8_t readStopRunButtons(){
 // читаем кнопки MUTE, DIR каждого канала, если dir поменялись то отправляем их
 bool readDirButtons(){
   bool st = 0;
-  bool chng = false;
+  bool changed = false;
   for (byte i = 0; i < channels_count; i++) {
     //читаем Dir, если изменилось то сохраняем и шлем
     st = dirButtons[i]->getState();
     if(channels[i][c_dir] != st){
-      chng = true;
+      changed = true;
       channels[i][c_dir] = st;
     } 
   }
-  return chng;
+  return changed;
 }
 
 bool readEnButtons(){
-  bool chng = false;
+  bool changed = false;
   bool st = 0;
   for (byte i = 0; i < channels_count; i++) {
     //читаем En, если изменилось то сохраняем и шлем
     st = enButtons[i]->getState();
     if(channels[i][c_en] != st){
-      chng = true;
+      changed = true;
       channels[i][c_en] = st;
     } 
   }
-  return chng;
+  return changed;
 }
 
 //считываем резистор скорости обновляем значения в каналах если изменения то отправляем
 bool readResistors(){
   int val =0;
-  bool changes = false;
+  bool changed = false;
   for (byte i = 0; i < channels_count; i++) {
-    if(channels[i][c_en] != m_en){
+    if(channels[i][c_en] == m_en){
         val = getValueById(i);
         if(channels[i][c_speed] != val){
            channels[i][c_speed] = val;
-          changes = true;
+          changed = true;
           }
      }
   }
-    return changes;
+    return changed;
 }
 
 // void speedMode(){
@@ -402,7 +432,7 @@ void setLiveChanelMode(){
     channels[i][c_mode] = m_live;
     displays[i].setSegments(SEG_LIVE);
   }
-  mode = LIVE_MODE;
+  mode = MODE_LIVE;
   display_time.setSegments(SEG_LIVE);
   delay(500);
 }
@@ -411,30 +441,30 @@ void setSpeedChanelMode(){
   for (byte i = 0; i < channels_count; i++) {
     channels[i][c_mode] = m_active;
   }
-  mode = SPEED_MODE; // SPEED
+  mode = MODE_SPEED; // SPEED
   display_time.setSegments(SEG_SPED);
   delay(500);
 }
 
 void setDistMode(){
-  mode = DIST_MODE;
+  mode = MODE_DIST;
   display_time.setSegments(SEG_DIST);
   delay(500);
 }
 
 void setAccChanelMode(){
-  mode = ACC_MODE;
+  mode = MODE_ACC;
   display_time.setSegments(SEG_ACC);
   delay(500);
 }
 
 void setStopMode(){
-  mode = STOP_MOTION_MODE;
-  display_time.setSegments(SEG_REPT);
+  mode = MODE_STOP;
+  display_time.setSegments(SEG_STOP);
   delay(500);
 }
 void setStopmMotionMode(){
-  mode = STOP_MOTION_MODE;
+  mode = MODE_STOP_MOTION;
   display_time.setSegments(SEG_REPT);
   delay(500);
 }
@@ -444,8 +474,8 @@ void liveControl(){
     readResistors();
 //    showValues();
     setDataForSend(true);
-    data[c_format] = LIVE_FORMAT;
-    sendData(LIVE_FORMAT, c_target);
+    data[c_format] = FORMAT_LIVE;
+    sendData(FORMAT_LIVE, c_target);
 }
 
 void sendData(uint8_t format, uint8_t param_index ){  // Отправка с пульта в терминал и на робот на робот
@@ -610,13 +640,13 @@ int getValueById(byte id){
 void setDataForSend(bool invert){
   for (byte i = 0; i < channels_count; i++) {
     bool dir = invert ? channels[i][c_dir] : !channels[i][c_dir];
-    if(mode == DIST_MODE){
+    if(mode == MODE_DIST){
       data[i] = channels[i][c_en] != m_off ? distCorrection(channels[i][c_dist], dir) : -10;
     } else {
       data[i] = channels[i][c_en] != m_off ? channels[i][c_speed] : 512;
     }
   }
- mode == DIST_MODE ? data[c_format] = DIST_FORMAT : data[c_format] = LIVE_FORMAT;
+ mode == MODE_DIST ? data[c_format] = FORMAT_TARGET : data[c_format] = FORMAT_LIVE;
 }
 
 int getKeybordSpeed(){

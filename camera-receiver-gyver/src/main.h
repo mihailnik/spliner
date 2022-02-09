@@ -1,14 +1,18 @@
 #ifndef main_H
 #define main_H
 
-#define EMPTY_FORMAT -10
-#define SPEED_FORMAT -20
-#define DIST_FORMAT -30
-#define STOP_FORMAT -40
-#define ACCEL_FORMAT -50
-#define SET_CURRUNT_FORMAT -60
-#define REPEAT_FORMAT -70
-#define DIR_FORMAT -80
+#define FORMAT_EMPTY 0
+#define FORMAT_RESET 1
+#define FORMAT_LIVE 2
+#define FORMAT_SPEED 3
+#define FORMAT_TARGET 4
+#define FORMAT_STOP 5
+#define FORMAT_PAUSE 6
+#define FORMAT_ACCEL 7
+#define FORMAT_SET_CURRENT 8
+#define FORMAT_REPEAT 9
+#define FORMAT_DIR 10
+#define FORMAT_EN 11
 
 #define SW1 14
 #define SW2 15

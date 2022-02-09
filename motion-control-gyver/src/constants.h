@@ -154,26 +154,26 @@ const uint8_t SEG_REPT[] = {
   SEG_F | SEG_E | SEG_D | SEG_G
 };
 
-#define EMPTY_FORMAT 0
-#define RESET_FORMAT 1
-#define LIVE_FORMAT 1
-#define SPEED_FORMAT 2
-#define DIST_FORMAT 3
-#define STOP_FORMAT 4
-#define PAUSE_FORMAT 5
-#define ACCEL_FORMAT 6
-#define SET_CURRUNT_FORMAT 7
-#define REPEAT_FORMAT 8
-#define DIR_FORMAT 9
-#define EN_FORMAT 10
+#define FORMAT_EMPTY 0
+#define FORMAT_RESET 1
+#define FORMAT_LIVE 2
+#define FORMAT_SPEED 3
+#define FORMAT_TARGET 4
+#define FORMAT_STOP 5
+#define FORMAT_PAUSE 6
+#define FORMAT_ACCEL 7
+#define FORMAT_SET_CURRENT 8
+#define FORMAT_REPEAT 9
+#define FORMAT_DIR 10
+#define FORMAT_EN 11
 
-#define STOP_MODE 0
-#define LIVE_MODE 1
-#define SPEED_MODE 2
-#define RUN_MODE 3
-#define DIST_MODE 4
-#define ACC_MODE 5
-#define STOP_MOTION_MODE 6
+#define MODE_STOP 0
+#define MODE_LIVE 1
+#define MODE_SPEED 2
+#define MODE_RUN 3
+#define MODE_DIST 4
+#define MODE_ACC 5
+#define MODE_STOP_MOTION 6
 
 #define BTN_TO_THE_LEFT 4
 #define BTN_TO_THE_RIGHT 5
