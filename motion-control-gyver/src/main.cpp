@@ -309,6 +309,7 @@ void stopMotionMode(){
       sendData(FORMAT_REPEAT, c_target);
     }
     else
+    слать таргет (и скорость большими шагами? ) в реалтайме
     {//  облечь этот if в for выводя где лимит сработал, поканально
       tmpTarget = channels[c_lift][c_dist] + channels[c_lift][c_target] ;
       if (channels[c_lift][c_limit] > tmpTarget )// проверяем что бы не слететь с рельс в крайней точке Limit
