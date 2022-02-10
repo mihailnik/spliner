@@ -95,7 +95,6 @@ void setup(){
   MotorNod.setAcceleration(200);
   MotorLift.setAcceleration(1000);
   MotorClock.setAcceleration(2000);
-
 }
 
 void logInput(){
@@ -118,13 +117,12 @@ void logInput(){
 
 void loop()
 {
+  // поменять лифт и нод , на пульте clock, lift, nod, carusel, rail
+  библиотека таймера
   MotorClock.enable();
   MotorLift.enable();
   MotorNod.enable();
-  MotorClock.setTarget(10000);    // сбрасываем координаты в 0
-  MotorLift.setTarget(10000);    // сбрасываем координаты в 0
-  MotorNod.setTarget(100);    // сбрасываем координаты в 0
- 
+ static uint32_t tmr;
   while (1){
     if(radio.available()){
        radio.read(&data, sizeof(data));
@@ -132,10 +130,13 @@ void loop()
         logInput();
         #endif
     }
-
+  if (millis() - tmr >= 5) {
+    tmr = millis();
       MotorClock.tick(); 
       MotorNod.tick(); 
-      MotorLift.tick(); 
+      MotorLift.tick();
+  }
+ 
 
     if(data[c_format] == FORMAT_DIR){ // инвертируем направление осей(изменится не во время движения)
       dir_Nod = data[c_nod];
@@ -160,13 +161,11 @@ void loop()
       MotorLift.setAcceleration(data[c_lift]);
       MotorNod.setAcceleration(data[c_nod]);
       return;
-    } else if(data[c_format] == FORMAT_TARGET){
+    } else if (data[c_format] == FORMAT_TARGET){
         MotorClock.setTarget(data[c_clock]);
         MotorLift.setTarget(data[c_lift]);
         MotorNod.setTarget(data[c_nod]);
       return;
-    } else if(data[c_format] == FORMAT_REPEAT){
-        MotorClock.setTarget(currentLift);
     }
 
 
