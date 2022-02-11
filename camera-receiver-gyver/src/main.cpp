@@ -1,6 +1,7 @@
 #include "main.h"
 // #include "Motor.h"
 #include "GyverStepper2.h"
+#include <GyverTimers.h>
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
@@ -23,9 +24,9 @@
 RF24 radio(48, 53); // nRF24L01+ (CE, CSN)
 
 int data[7] = {512, 512, 512, 512, 0, 512, 512};
-int dir_Nod = 0; // буфер направления мотора
-int dir_Lift = 0; // буфер направления мотора
 int dir_Clock = 0; // буфер направления мотора
+int dir_Lift = 0; // буфер направления мотора
+int dir_Nod = 0; // буфер направления мотора
 int currentNod = 0;
 int currentLift = 0;
 int currentClock = 0;
@@ -48,6 +49,7 @@ bool prevDir[3];
 //#define speedPinRead2 A2
 
 void setup(){
+  Timer1.setFrequency(100);  
   // For arduino speed up
   #if FASTADC
   // set prescale to 16
@@ -95,6 +97,8 @@ void setup(){
   MotorNod.setAcceleration(200);
   MotorLift.setAcceleration(1000);
   MotorClock.setAcceleration(2000);
+  Timer1.enableISR();                   // Запускаем прерывание (по умолч. канал А)
+
 }
 
 void logInput(){
@@ -118,7 +122,6 @@ void logInput(){
 void loop()
 {
   // поменять лифт и нод , на пульте clock, lift, nod, carusel, rail
-  библиотека таймера
   MotorClock.enable();
   MotorLift.enable();
   MotorNod.enable();
@@ -130,12 +133,9 @@ void loop()
         logInput();
         #endif
     }
-  if (millis() - tmr >= 5) {
-    tmr = millis();
-      MotorClock.tick(); 
-      MotorNod.tick(); 
-      MotorLift.tick();
-  }
+  // if (millis() - tmr >= 5) {
+  //   tmr = millis();
+  // }
  
 
     if(data[c_format] == FORMAT_DIR){ // инвертируем направление осей(изменится не во время движения)
@@ -182,4 +182,11 @@ void loop()
       } // инвертировать направление мотора
 
   }
+}
+
+// Прерывание А таймера 2
+ISR(TIMER2_A) {
+  MotorClock.tickManual2wr(); 
+  MotorNod.tickManual2wr(); 
+  MotorLift.tickManual2wr();
 }

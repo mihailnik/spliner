@@ -25,8 +25,8 @@
 #define ENBL_CLOCK 24
 
 #define c_clock 0
-#define c_nod 1 // kivok
-#define c_lift 2
+#define c_lift 1
+#define c_nod 2 // kivok
 #define c_carousel 3
 #define c_rail 4
 #define c_empty 5

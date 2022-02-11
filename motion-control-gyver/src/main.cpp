@@ -136,7 +136,6 @@ void setup() {
   pinMode(CLK_4, INPUT);
   pinMode(DT_4, INPUT);
   
-  
   encoders[0][_counter] = 0;
   encoders[0][_CLK] = CLK_0;
   encoders[0][_DT] = DT_0;
@@ -173,7 +172,7 @@ void setup() {
 void loop() {
 
 // Вызываем режим который хотим при инициализации
-     setStopmMotionMode();
+    setStopmMotionMode();
     for (byte i = 0; i < channels_count; i++) {
       channels[i][c_limit] = default_c_limit;
     } 
@@ -213,18 +212,126 @@ void ModeSwicher(){
 }
 
 void distMode(){
-  readResistors(20);
-  readDirButtons();
-  readEnButtons();
-  showValues(c_accel);
-  bool invert = false;
-  if(dirTrig == BTN_TO_THE_LEFT){
-    invert = true;
-    setDataForSend(invert);
-  } else if (dirTrig == BTN_TO_THE_RIGHT){
-    invert = false;
-    setDataForSend(invert);
-  } 
+    showValues(c_dist);
+    int tmpTarget=0;
+    uint8_t btn = 0;
+
+        // шлем изменения кнопок En, Dir, и сильные (>10) изменения резисторов
+  if(readDirButtons()){sendData(FORMAT_DIR, c_dir);  } 
+  if(readResistors(20)){ sendData(FORMAT_SPEED, c_speed );  }
+    readEnButtons();
+
+    // едем к нулю
+    if (customKey == '0'){
+      for (byte i = 0; i < channels_count; i++) 
+      {
+        if (channels[i][c_en]==1)
+        {
+          channels[i][c_target] = 0;
+        }
+      }
+      customKey = 100;
+      sendData(FORMAT_TARGET, c_target);
+    }
+
+    btn = readStopRunButtons();
+   if (btn == BTN_STOP_NOW)
+   {
+      sendData(FORMAT_PAUSE, c_dir );
+      stopTrig = true; // запоминаем что был стоп что бы потом не вычислять цель а доехать/вернуться к старой
+   }
+   else if (btn == BTN_TO_THE_LEFT)//идем к левой цели если она больше 0, или идем к 0, следующая левая уменьшается на dist
+   {
+      if (stopTrig)
+      { // была ли кнопка стоп
+        stopTrig = false;
+        if (dirTrig==BTN_TO_THE_LEFT)
+        {
+          ;
+        }
+        else if(dirTrig==BTN_TO_THE_RIGHT) 
+        {
+          for (byte i = 0; i < channels_count; i++) 
+          {
+            if (channels[i][c_en]==1)
+            {
+              tmpTarget = channels[i][c_old_target];
+              channels[i][c_old_target] = channels[i][c_target];
+              channels[i][c_target] = tmpTarget;
+            }
+          }
+        }
+      } 
+      else 
+      {
+        for (byte i = 0; i < channels_count; i++) 
+        {
+          if (channels[i][c_dist] > channels[i][c_target]) // проверяем что бы не слететь с рельс в "0"-й точке (в начале)
+          { 
+            if (channels[i][c_en]==1)
+            {
+              channels[i][c_old_target] = channels[i][c_target];
+              channels[i][c_target] = 0;
+            }
+          }
+          else
+          {
+            if (channels[i][c_en]==1)
+            {
+              channels[i][c_old_target] = channels[i][c_target];
+              channels[i][c_target] -= channels[i][c_dist];
+            }
+          }
+        }
+        dirTrig = BTN_TO_THE_LEFT;
+        sendData(FORMAT_TARGET, c_target);
+      }
+  }
+  else if(btn == BTN_TO_THE_RIGHT)
+  {
+    if (stopTrig)
+    { // была ли кнопка стоп
+      stopTrig = false;
+      if (dirTrig==BTN_TO_THE_RIGHT)
+      {
+      }
+      else if(dirTrig==BTN_TO_THE_LEFT)
+      {
+        for (byte i = 0; i < channels_count; i++)
+        {
+          if (channels[i][c_en]==1)
+          {
+              tmpTarget = channels[i][c_old_target];
+              channels[i][c_old_target] = channels[i][c_target];
+              channels[i][c_target] = tmpTarget;
+          }
+        }
+      }
+      dirTrig = BTN_TO_THE_RIGHT;
+      sendData(FORMAT_TARGET, c_target);
+    }
+    else
+    {//  облечь этот if в for выводя где лимит сработал, поканально
+      tmpTarget = channels[c_lift][c_dist] + channels[c_lift][c_target] ;
+      if (channels[c_lift][c_limit] > tmpTarget )// проверяем что бы не слететь с рельс в крайней точке Limit
+      {
+        for (byte i = 0; i < channels_count; i++)
+        {
+          if (channels[i][c_en]==1)
+          {
+            channels[i][c_old_target] = channels[i][c_target];
+            channels[i][c_target] += channels[i][c_dist];
+          }
+        }
+        dirTrig = BTN_TO_THE_RIGHT;
+        sendData(FORMAT_TARGET, c_target);
+      }
+      else
+      {
+        // Не едем в право но Показываем Лимит - конец путей ))
+      }
+    }
+  }
 }
 
 void stopMode(){

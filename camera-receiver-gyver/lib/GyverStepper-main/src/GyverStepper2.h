@@ -185,6 +185,81 @@ public:
         return status;
     }
 
+    // ручной тикер 2Wire для вызова в прерывании таймера. Вернёт true, если мотор движется
+    bool tickManual2wr() {
+        if (!status) return 0;  // стоим-выходим
+        step2wr();                 // шаг
+        
+    #ifndef GS_NO_ACCEL     // движение с ускорением
+        switch (status) {
+        case 1:     // едем
+        case 2:     // пауза
+            // https://www.embedded.com/generate-stepper-motor-speed-profiles-in-real-time/
+            steps++;
+            if (steps < s1) {                                    // разгон
+                #ifndef GS_FAST_PROFILE
+                us10 -= 2ul * us10 / (4ul * (steps + so1) + 1);
+                us = (uint32_t)us10 >> 10;
+                us = constrain(us, usMin, us0);
+                #else
+                if ((steps + so1) >= prfS[GS_FAST_PROFILE - 1]) us = usMin;
+                else {
+                    int j = 0;
+                    while ((steps + so1) >= prfS[j]) j++;
+                    us = prfP[j];
+                }
+                #endif
+            }
+            else if (steps < s2) us = usMin;                     // постоянная
+            else if (steps < S) {                                // торможение
+                #ifndef GS_FAST_PROFILE
+                us10 += 2ul * us10 / (4ul * (S - steps) + 1);
+                us = (uint32_t)us10 >> 10;
+                us = constrain(us, usMin, us0);
+                #else
+                if ((S - steps) >= prfS[GS_FAST_PROFILE - 1]) us = usMin;
+                else {
+                    int j = 0;
+                    while ((S - steps) >= prfS[j]) j++;
+                    us = prfP[j];
+                }
+                #endif
+            } else {                                             // приехали
+                if (revF) {
+                    status = 0;
+                    setTarget(bufT);
+                    return status;
+                }
+                if (status == 1) readyF = 1;
+                brake();
+            }
+            return status;
+        case 4:     // плавная остановка
+            stopStep--;
+            #ifndef GS_FAST_PROFILE
+            us10 += 2ul * us10 / (4ul * stopStep + 1);
+            us = (uint32_t)us10 >> 10;
+            us = constrain(us, usMin, us0);
+            #else
+            if (stopStep >= prfS[GS_FAST_PROFILE - 1]) us = usMin;
+            else {
+                int j = 0;
+                while (stopStep >= prfS[j]) j++;
+                us = prfP[j];
+            }
+            #endif
+            if (pos == tar || stopStep <= 0 || us >= us0) brake();
+            return status;
+        }
+    #else
+        if (status <= 2 && pos == tar) {
+            if (status == 1) readyF = 1;
+            brake();
+        }
+    #endif
+        return status;
+    }
+
     // ============================= SPEED MODE =============================
     // установить скорость вращения
     bool setSpeed(int32_t speed) {

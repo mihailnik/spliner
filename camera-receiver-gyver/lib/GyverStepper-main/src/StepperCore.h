@@ -81,6 +81,12 @@ public:
             step4();
         }
     }
+
+    // сделать шаг 2 Wire
+    void step2wr() {
+        pos += dir;
+            stepDir();
+    }
     
     // инвертировать поведение EN пина
     void invertEn(bool val) {
