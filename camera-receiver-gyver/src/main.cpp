@@ -1,6 +1,6 @@
 #include "main.h"
 // #include "Motor.h"
-#include "GyverStepper2.h"
+#include "GyverStepper.h"
 #include <GyverTimers.h>
 #include <SPI.h>
 #include <nRF24L01.h>
@@ -32,9 +32,9 @@ int currentLift = 0;
 int currentClock = 0;
 
 //GStepper<STEPPER2WIRE> stepper(steps, step, dir, en);               // драйвер step-dir + пин enable
-GStepper2<STEPPER2WIRE> MotorClock(400, 9, 34, 25); 
-GStepper2<STEPPER2WIRE> MotorLift(400, 6, 37, 22); 
-GStepper2<STEPPER2WIRE> MotorNod(400, 8, 35, 24); 
+GStepper<STEPPER2WIRE> MotorClock(400, 9, 34, 25); 
+GStepper<STEPPER2WIRE> MotorLift(400, 6, 37, 22); 
+GStepper<STEPPER2WIRE> MotorNod(400, 8, 35, 24); 
 
 float correction1 = 1.0; // Kivok
 float correction2 = 4.0; // Karusel
@@ -49,7 +49,7 @@ bool prevDir[3];
 //#define speedPinRead2 A2
 
 void setup(){
-  Timer1.setFrequency(100);  
+  Timer3.setFrequency(600);  
   // For arduino speed up
   #if FASTADC
   // set prescale to 16
@@ -90,14 +90,14 @@ void setup(){
   //radio.openReadingPipe(1, 0x1234567800LL); // We open 1 pipe with identifier 0x1234567890 for receiving data (up to 6 different pipes can be opened on the channel, which should differ only in the last byte of the identifier)
   radio.startListening(); // Turn on the receiver, start listening to an open pipe
 
-  MotorNod.setMaxSpeed(200);
-  MotorLift.setMaxSpeed(1600);  
-  MotorClock.setMaxSpeed(50000);
+  MotorNod.setMaxSpeed(256);
+  MotorLift.setMaxSpeed(16384);  
+  MotorClock.setMaxSpeed(4096);
 
-  MotorNod.setAcceleration(200);
-  MotorLift.setAcceleration(1000);
-  MotorClock.setAcceleration(2000);
-  Timer1.enableISR();                   // Запускаем прерывание (по умолч. канал А)
+  MotorNod.setAcceleration(8);
+  MotorLift.setAcceleration(32);
+  MotorClock.setAcceleration(8);
+  Timer3.enableISR();                   // Запускаем прерывание (по умолч. канал А)
 
 }
 
@@ -146,7 +146,7 @@ void loop()
       MotorClock.setMaxSpeed(data[c_clock]);
       MotorLift.setMaxSpeed(data[c_lift]);
       MotorNod.setMaxSpeed(data[c_nod]);
-    } else if (data[c_format] == FORMAT_STOP){
+    } else if (data[c_format] == FORMAT_PAUSE){
       MotorClock.stop();
       MotorLift.stop();
       MotorNod.stop();
@@ -169,24 +169,29 @@ void loop()
     }
 
 
-    if (MotorClock.ready()){
          dir_Clock==0?  MotorClock.reverse(false) : MotorClock.reverse(true) ;
-      } // инвертировать направление мотора
-
-    if (MotorLift.ready()){
          dir_Lift==0?  MotorLift.reverse(false) : MotorLift.reverse(true) ;
-      } // инвертировать направление мотора
-
-    if (MotorNod.ready()){
          dir_Nod==0?  MotorNod.reverse(false) : MotorNod.reverse(true) ;
-      } // инвертировать направление мотора
+    // if (MotorClock.ready()){
+    //      dir_Clock==0?  MotorClock.reverse(false) : MotorClock.reverse(true) ;
+    //   } // инвертировать направление мотора
 
+    // if (MotorLift.ready()){
+    //      dir_Lift==0?  MotorLift.reverse(false) : MotorLift.reverse(true) ;
+    //   } // инвертировать направление мотора
+
+    // if (MotorNod.ready()){
+    //      dir_Nod==0?  MotorNod.reverse(false) : MotorNod.reverse(true) ;
+    //   } // инвертировать направление мотора
   }
 }
 
 // Прерывание А таймера 2
-ISR(TIMER2_A) {
-  MotorClock.tickManual2wr(); 
-  MotorNod.tickManual2wr(); 
-  MotorLift.tickManual2wr();
+ISR(TIMER3_A) {
+  // MotorClock.tick2wr(); 
+  // MotorNod.tick2wr(); 
+  // MotorLift.tick2wr();
+  MotorClock.tick(); 
+  MotorNod.tick(); 
+  MotorLift.tick();
 }

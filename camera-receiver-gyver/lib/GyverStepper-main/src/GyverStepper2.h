@@ -99,6 +99,19 @@ public:
     
     // ============================= TICK =============================
     // тикер. Вернёт true, если мотор движется
+    bool tick2wr() {
+        if (status) {
+            uint32_t thisUs = micros();
+            if (thisUs - tmr >= us) {
+                tmr = thisUs;
+                tickManual2wr();
+            }
+        }
+        return status;
+    }
+
+    // ============================= TICK =============================
+    // тикер. Вернёт true, если мотор движется
     bool tick() {
         if (status) {
             uint32_t thisUs = micros();
