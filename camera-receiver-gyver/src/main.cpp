@@ -49,11 +49,8 @@ bool prevDir[3];
 //#define speedPinRead2 A2
 
 void setup(){
-<<<<<<< HEAD
   // Timer1.setFrequency(100);  
-=======
   Timer3.setFrequency(600);  
->>>>>>> cf7f1b60081fc9a36d76c27aba7dcbfdb651aab4
   // For arduino speed up
   #if FASTADC
   // set prescale to 16
@@ -94,7 +91,6 @@ void setup(){
   //radio.openReadingPipe(1, 0x1234567800LL); // We open 1 pipe with identifier 0x1234567890 for receiving data (up to 6 different pipes can be opened on the channel, which should differ only in the last byte of the identifier)
   radio.startListening(); // Turn on the receiver, start listening to an open pipe
 
-<<<<<<< HEAD
   MotorClock.setMaxSpeed(1000);
   MotorLift.setMaxSpeed(2000);  
   MotorNod.setMaxSpeed(3000);
@@ -106,7 +102,6 @@ void setup(){
   MotorLift.enable();
   MotorNod.enable();
   // Timer1.enableISR();                   // Запускаем прерывание (по умолч. канал А)
-=======
   MotorNod.setMaxSpeed(256);
   MotorLift.setMaxSpeed(16384);  
   MotorClock.setMaxSpeed(4096);
@@ -115,7 +110,6 @@ void setup(){
   MotorLift.setAcceleration(32);
   MotorClock.setAcceleration(8);
   Timer3.enableISR();                   // Запускаем прерывание (по умолч. канал А)
->>>>>>> cf7f1b60081fc9a36d76c27aba7dcbfdb651aab4
 
 }
 
@@ -212,9 +206,7 @@ void logInput(){
 }
   // if (millis() - tmr >= 5) {
   //   tmr = millis();
-<<<<<<< HEAD
   // }
-=======
   // }
  
 
@@ -275,4 +267,3 @@ ISR(TIMER3_A) {
   MotorNod.tick(); 
   MotorLift.tick();
 }
->>>>>>> cf7f1b60081fc9a36d76c27aba7dcbfdb651aab4
