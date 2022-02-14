@@ -10,6 +10,10 @@
 		{
 			"name": "motion-control-gyver",
 			"path": "motion-control-gyver"
+		},
+		{
+			"name": "rx_rail",
+			"path": "rx_rail"
 		}
 	]
 }

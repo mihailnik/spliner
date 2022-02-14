@@ -49,7 +49,7 @@ bool prevDir[3];
 //#define speedPinRead2 A2
 
 void setup(){
-  Timer1.setFrequency(100);  
+  // Timer1.setFrequency(100);  
   // For arduino speed up
   #if FASTADC
   // set prescale to 16
@@ -90,17 +90,94 @@ void setup(){
   //radio.openReadingPipe(1, 0x1234567800LL); // We open 1 pipe with identifier 0x1234567890 for receiving data (up to 6 different pipes can be opened on the channel, which should differ only in the last byte of the identifier)
   radio.startListening(); // Turn on the receiver, start listening to an open pipe
 
-  MotorNod.setMaxSpeed(200);
-  MotorLift.setMaxSpeed(1600);  
-  MotorClock.setMaxSpeed(50000);
+  MotorClock.setMaxSpeed(1000);
+  MotorLift.setMaxSpeed(2000);  
+  MotorNod.setMaxSpeed(3000);
 
-  MotorNod.setAcceleration(200);
-  MotorLift.setAcceleration(1000);
   MotorClock.setAcceleration(2000);
-  Timer1.enableISR();                   // Запускаем прерывание (по умолч. канал А)
+  MotorLift.setAcceleration(2000);
+  MotorNod.setAcceleration(2000);
+  MotorClock.enable();
+  MotorLift.enable();
+  MotorNod.enable();
+  // Timer1.enableISR();                   // Запускаем прерывание (по умолч. канал А)
 
 }
 
+
+void loop()
+{
+  // поменять лифт и нод , на пульте clock, lift, nod, carusel, rail
+   static uint32_t tmr;
+    MotorClock.setTarget(2000);
+    MotorLift.setTarget(2000);
+    MotorNod.setTarget(2000);
+  while (1){
+      MotorClock.tick(); 
+      MotorNod.tick(); 
+      MotorLift.tick();
+//      void radioRX();
+
+    #if SERIAL_EN
+      logInput();
+    #endif
+
+//      fsmInput();
+
+//      motorStopped();
+
+  }
+}
+void radioRX(){
+    if(radio.available()){
+       radio.read(&data, sizeof(data));
+    }
+}
+void fsmInput(){
+    if(data[c_format] == FORMAT_DIR){ // инвертируем направление осей(изменится не во время движения)
+      dir_Nod = data[c_nod];
+      dir_Lift = data[c_lift];
+      dir_Clock = data[c_clock];
+    } else if (data[c_format] == FORMAT_SPEED){
+      MotorClock.setMaxSpeed(data[c_clock]);
+      MotorLift.setMaxSpeed(data[c_lift]);
+      MotorNod.setMaxSpeed(data[c_nod]);
+    } else if (data[c_format] == FORMAT_STOP){
+      MotorClock.stop();
+      MotorLift.stop();
+      MotorNod.stop();
+    } else if (data[c_format] == FORMAT_SET_CURRENT){
+      MotorClock.setCurrent(data[c_clock]);
+      MotorLift.setCurrent(data[c_lift]);
+      MotorNod.setCurrent(data[c_nod]);
+    } else if (data[c_format] == FORMAT_ACCEL){
+      MotorClock.setAcceleration(data[c_clock]);
+      MotorLift.setAcceleration(data[c_lift]);
+      MotorNod.setAcceleration(data[c_nod]);
+    } else if (data[c_format] == FORMAT_TARGET){
+        MotorClock.setTarget(data[c_clock]);
+        MotorLift.setTarget(data[c_lift]);
+        MotorNod.setTarget(data[c_nod]);
+    }
+}
+
+void motorStopped(){
+    if (MotorClock.ready()){
+         dir_Clock==0?  MotorClock.reverse(false) : MotorClock.reverse(true) ;
+      } // инвертировать направление мотора
+
+    if (MotorLift.ready()){
+         dir_Lift==0?  MotorLift.reverse(false) : MotorLift.reverse(true) ;
+      } // инвертировать направление мотора
+
+    if (MotorNod.ready()){
+         dir_Nod==0?  MotorNod.reverse(false) : MotorNod.reverse(true) ;
+      } // инвертировать направление мотора
+}
+
+// Прерывание А таймера 2
+// ISR(TIMER2_A) {
+// }
 void logInput(){
   Serial.print("Data: ");
   Serial.print(data[0]);
@@ -118,75 +195,6 @@ void logInput(){
   Serial.println(data[6]);
   delay(100);
 }
-
-void loop()
-{
-  // поменять лифт и нод , на пульте clock, lift, nod, carusel, rail
-  MotorClock.enable();
-  MotorLift.enable();
-  MotorNod.enable();
- static uint32_t tmr;
-  while (1){
-    if(radio.available()){
-       radio.read(&data, sizeof(data));
-       #if SERIAL_EN
-        logInput();
-        #endif
-    }
   // if (millis() - tmr >= 5) {
   //   tmr = millis();
   // }
- 
-
-    if(data[c_format] == FORMAT_DIR){ // инвертируем направление осей(изменится не во время движения)
-      dir_Nod = data[c_nod];
-      dir_Lift = data[c_lift];
-      dir_Clock = data[c_clock];
-    } else if (data[c_format] == FORMAT_SPEED){
-      MotorClock.setMaxSpeed(data[c_clock]);
-      MotorLift.setMaxSpeed(data[c_lift]);
-      MotorNod.setMaxSpeed(data[c_nod]);
-    } else if (data[c_format] == FORMAT_STOP){
-      MotorClock.stop();
-      MotorLift.stop();
-      MotorNod.stop();
-      return;
-    } else if (data[c_format] == FORMAT_SET_CURRENT){
-      MotorClock.setCurrent(data[c_clock]);
-      MotorLift.setCurrent(data[c_lift]);
-      MotorNod.setCurrent(data[c_nod]);
-      return;
-    } else if (data[c_format] == FORMAT_ACCEL){
-      MotorClock.setAcceleration(data[c_clock]);
-      MotorLift.setAcceleration(data[c_lift]);
-      MotorNod.setAcceleration(data[c_nod]);
-      return;
-    } else if (data[c_format] == FORMAT_TARGET){
-        MotorClock.setTarget(data[c_clock]);
-        MotorLift.setTarget(data[c_lift]);
-        MotorNod.setTarget(data[c_nod]);
-      return;
-    }
-
-
-    if (MotorClock.ready()){
-         dir_Clock==0?  MotorClock.reverse(false) : MotorClock.reverse(true) ;
-      } // инвертировать направление мотора
-
-    if (MotorLift.ready()){
-         dir_Lift==0?  MotorLift.reverse(false) : MotorLift.reverse(true) ;
-      } // инвертировать направление мотора
-
-    if (MotorNod.ready()){
-         dir_Nod==0?  MotorNod.reverse(false) : MotorNod.reverse(true) ;
-      } // инвертировать направление мотора
-
-  }
-}
-
-// Прерывание А таймера 2
-ISR(TIMER2_A) {
-  MotorClock.tickManual2wr(); 
-  MotorNod.tickManual2wr(); 
-  MotorLift.tickManual2wr();
-}

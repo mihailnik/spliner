@@ -32,6 +32,10 @@
 #define c_empty 5
 #define c_format 6
 
+void logInput(void);
+void fsmInput(void);
+void motorStopped(void);
+void radioRX(void);
 #endif
 
 
