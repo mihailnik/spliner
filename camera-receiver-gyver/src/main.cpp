@@ -1,12 +1,12 @@
 #include "main.h"
 // #include "Motor.h"
-#include "GyverStepper.h"
+#include "GyverStepper2.h"
 #include <GyverTimers.h>
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
 
-#define SERIAL_EN 1
+//#define SERIAL_EN 1
 
 // For arduino speed up
 
@@ -32,9 +32,9 @@ int currentLift = 0;
 int currentClock = 0;
 
 //GStepper<STEPPER2WIRE> stepper(steps, step, dir, en);               // драйвер step-dir + пин enable
-GStepper<STEPPER2WIRE> MotorClock(400, 9, 34, 25); 
-GStepper<STEPPER2WIRE> MotorLift(400, 6, 37, 22); 
-GStepper<STEPPER2WIRE> MotorNod(400, 8, 35, 24); 
+GStepper2<STEPPER2WIRE> MotorClock(400, 9, 34, 25); 
+GStepper2<STEPPER2WIRE> MotorLift(400, 6, 37, 22); 
+GStepper2<STEPPER2WIRE> MotorNod(400, 8, 35, 24); 
 
 float correction1 = 1.0; // Kivok
 float correction2 = 4.0; // Karusel
@@ -49,8 +49,7 @@ bool prevDir[3];
 //#define speedPinRead2 A2
 
 void setup(){
-  // Timer1.setFrequency(100);  
-  Timer3.setFrequency(600);  
+ // Timer3.setFrequency(600);  
   // For arduino speed up
   #if FASTADC
   // set prescale to 16
@@ -69,6 +68,7 @@ void setup(){
 
   PORTA = B11111111;
 
+  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(SW1, INPUT);
   pinMode(SW2, INPUT);
   pinMode(SW3, INPUT);
@@ -103,13 +103,13 @@ void setup(){
   MotorNod.enable();
   // Timer1.enableISR();                   // Запускаем прерывание (по умолч. канал А)
   MotorNod.setMaxSpeed(256);
-  MotorLift.setMaxSpeed(16384);  
+  MotorLift.setMaxSpeed(8192);  
   MotorClock.setMaxSpeed(4096);
 
-  MotorNod.setAcceleration(8);
-  MotorLift.setAcceleration(32);
-  MotorClock.setAcceleration(8);
-  Timer3.enableISR();                   // Запускаем прерывание (по умолч. канал А)
+  MotorNod.setAcceleration(512);
+  MotorLift.setAcceleration(256);
+  MotorClock.setAcceleration(256);
+ //Timer3.enableISR();                   // Запускаем прерывание (по умолч. канал А)
 
 }
 
@@ -122,15 +122,16 @@ void loop()
     MotorLift.setTarget(2000);
     MotorNod.setTarget(2000);
   while (1){
-      MotorClock.tick(); 
-      MotorNod.tick(); 
-      MotorLift.tick();
-//      void radioRX();
+     MotorClock.tick(); 
+     MotorNod.tick(); 
+     MotorLift.tick();
+     void radioRX();
 
     #if SERIAL_EN
       logInput();
     #endif
 
+digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 //      fsmInput();
 
 //      motorStopped();
@@ -207,56 +208,6 @@ void logInput(){
   // if (millis() - tmr >= 5) {
   //   tmr = millis();
   // }
-  // }
- 
-
-    if(data[c_format] == FORMAT_DIR){ // инвертируем направление осей(изменится не во время движения)
-      dir_Nod = data[c_nod];
-      dir_Lift = data[c_lift];
-      dir_Clock = data[c_clock];
-    } else if (data[c_format] == FORMAT_SPEED){
-      MotorClock.setMaxSpeed(data[c_clock]);
-      MotorLift.setMaxSpeed(data[c_lift]);
-      MotorNod.setMaxSpeed(data[c_nod]);
-    } else if (data[c_format] == FORMAT_PAUSE){
-      MotorClock.stop();
-      MotorLift.stop();
-      MotorNod.stop();
-      return;
-    } else if (data[c_format] == FORMAT_SET_CURRENT){
-      MotorClock.setCurrent(data[c_clock]);
-      MotorLift.setCurrent(data[c_lift]);
-      MotorNod.setCurrent(data[c_nod]);
-      return;
-    } else if (data[c_format] == FORMAT_ACCEL){
-      MotorClock.setAcceleration(data[c_clock]);
-      MotorLift.setAcceleration(data[c_lift]);
-      MotorNod.setAcceleration(data[c_nod]);
-      return;
-    } else if (data[c_format] == FORMAT_TARGET){
-        MotorClock.setTarget(data[c_clock]);
-        MotorLift.setTarget(data[c_lift]);
-        MotorNod.setTarget(data[c_nod]);
-      return;
-    }
-
-
-         dir_Clock==0?  MotorClock.reverse(false) : MotorClock.reverse(true) ;
-         dir_Lift==0?  MotorLift.reverse(false) : MotorLift.reverse(true) ;
-         dir_Nod==0?  MotorNod.reverse(false) : MotorNod.reverse(true) ;
-    // if (MotorClock.ready()){
-    //      dir_Clock==0?  MotorClock.reverse(false) : MotorClock.reverse(true) ;
-    //   } // инвертировать направление мотора
-
-    // if (MotorLift.ready()){
-    //      dir_Lift==0?  MotorLift.reverse(false) : MotorLift.reverse(true) ;
-    //   } // инвертировать направление мотора
-
-    // if (MotorNod.ready()){
-    //      dir_Nod==0?  MotorNod.reverse(false) : MotorNod.reverse(true) ;
-    //   } // инвертировать направление мотора
-  }
-}
 
 // Прерывание А таймера 2
 ISR(TIMER3_A) {
