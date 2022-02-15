@@ -49,7 +49,7 @@ bool prevDir[3];
 //#define speedPinRead2 A2
 
 void setup(){
- // Timer3.setFrequency(600);  
+// Timer3.setFrequency(8192);  
   // For arduino speed up
   #if FASTADC
   // set prescale to 16
@@ -91,25 +91,18 @@ void setup(){
   //radio.openReadingPipe(1, 0x1234567800LL); // We open 1 pipe with identifier 0x1234567890 for receiving data (up to 6 different pipes can be opened on the channel, which should differ only in the last byte of the identifier)
   radio.startListening(); // Turn on the receiver, start listening to an open pipe
 
-  MotorClock.setMaxSpeed(1000);
-  MotorLift.setMaxSpeed(2000);  
-  MotorNod.setMaxSpeed(3000);
+  MotorClock.setMaxSpeed(1024);
+  MotorLift.setMaxSpeed(2048);  
+  MotorNod.setMaxSpeed(4096);
 
-  MotorClock.setAcceleration(2000);
-  MotorLift.setAcceleration(2000);
-  MotorNod.setAcceleration(2000);
+  MotorClock.setAcceleration(512);
+  MotorLift.setAcceleration(512);
+  MotorNod.setAcceleration(512);
+
   MotorClock.enable();
   MotorLift.enable();
   MotorNod.enable();
-  // Timer1.enableISR();                   // Запускаем прерывание (по умолч. канал А)
-  MotorNod.setMaxSpeed(256);
-  MotorLift.setMaxSpeed(8192);  
-  MotorClock.setMaxSpeed(4096);
-
-  MotorNod.setAcceleration(512);
-  MotorLift.setAcceleration(256);
-  MotorClock.setAcceleration(256);
- //Timer3.enableISR();                   // Запускаем прерывание (по умолч. канал А)
+//  Timer3.enableISR();                   // Запускаем прерывание (по умолч. канал А)
 
 }
 
@@ -118,36 +111,43 @@ void loop()
 {
   // поменять лифт и нод , на пульте clock, lift, nod, carusel, rail
    static uint32_t tmr;
-    MotorClock.setTarget(2000);
-    MotorLift.setTarget(2000);
-    MotorNod.setTarget(2000);
+    // MotorClock.setTarget(2000);
+    // MotorLift.setTarget(2000);
+    // MotorNod.setTarget(2000);
   while (1){
-     MotorClock.tick(); 
-     MotorNod.tick(); 
-     MotorLift.tick();
-     void radioRX();
+  // if (millis() - tmr >= 1) {
+  //   tmr = millis();
+//    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+  // }
 
-    #if SERIAL_EN
-      logInput();
-    #endif
+   MotorClock.tick(); 
+   MotorLift.tick();
+   MotorNod.tick(); 
 
-digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-//      fsmInput();
+    radioRX();
 
-//      motorStopped();
+    fsmInput();
+
+    motorStopped();
 
   }
 }
+
 void radioRX(){
-    if(radio.available()){
-       radio.read(&data, sizeof(data));
-    }
+  if(radio.available())
+  {
+    radio.read(&data, sizeof(data));
+    #if SERIAL_EN
+      logInput();
+    #endif
+   }
 }
+
 void fsmInput(){
     if(data[c_format] == FORMAT_DIR){ // инвертируем направление осей(изменится не во время движения)
-      dir_Nod = data[c_nod];
-      dir_Lift = data[c_lift];
       dir_Clock = data[c_clock];
+      dir_Lift = data[c_lift];
+      dir_Nod = data[c_nod];
     } else if (data[c_format] == FORMAT_SPEED){
       MotorClock.setMaxSpeed(data[c_clock]);
       MotorLift.setMaxSpeed(data[c_lift]);
@@ -185,9 +185,7 @@ void motorStopped(){
       } // инвертировать направление мотора
 }
 
-// Прерывание А таймера 2
-// ISR(TIMER2_A) {
-// }
+
 void logInput(){
   Serial.print("Data: ");
   Serial.print(data[0]);
@@ -212,9 +210,9 @@ void logInput(){
 // Прерывание А таймера 2
 ISR(TIMER3_A) {
   // MotorClock.tick2wr(); 
-  // MotorNod.tick2wr(); 
   // MotorLift.tick2wr();
+  // MotorNod.tick2wr(); 
   MotorClock.tick(); 
-  MotorNod.tick(); 
   MotorLift.tick();
+  MotorNod.tick(); 
 }

@@ -173,9 +173,14 @@ void loop() {
 
 // Вызываем режим который хотим при инициализации
     setStopmMotionMode();
-    for (byte i = 0; i < channels_count; i++) {
-      channels[i][c_limit] = default_c_limit;
-    } 
+    // for (byte i = 0; i < channels_count; i++) {
+    //   channels[i][c_limit] = default_c_limit;
+    // } 
+      channels[c_clock][c_limit] = 6000;
+      channels[c_lift][c_limit] = 10000;
+      channels[c_nod][c_limit] = 4000;
+      channels[c_carousel][c_limit] = 4000;
+      channels[c_rail][c_limit] = 4000;
 #ifdef PLAN__NA__ZAVTRA
 //    слать таргет (и скорость большими шагами? ) в реалтайме
 #endif 
