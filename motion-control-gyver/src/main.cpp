@@ -24,7 +24,7 @@ byte dirTrig = BTN_TO_THE_LEFT;
 bool stopTrig = false;
 int tmpTarget = 0;
 const int default_c_limit = 7000;         
-int channels[5][9]; // en | speed | dir | accel | left_target | target | right_target | dist_step | limit | mode
+int channels[5][9]; // en | speed | dir | accel | target | old_target | dist | limit | mode
 const int resistors_count = 9;
 const int channels_count = 5;
 Sensor* resistors[resistors_count];
@@ -84,8 +84,8 @@ void setup() {
   data[6] = 512; // Koleso 2
   // Sensor
   resistors[c_clock] = new Sensor(A0, 2, true);    // Channel 1 
-  resistors[c_nod] = new Sensor(A1, 2, true);      // Channel 2 
-  resistors[c_lift] = new Sensor(A2, 2, true);     // Channel 3 
+  resistors[c_lift] = new Sensor(A1, 2, true);      // Channel 2 
+  resistors[c_nod] = new Sensor(A2, 2, true);     // Channel 3 
   resistors[c_carousel] = new Sensor(A3, 2, true); // Channel 4 
   resistors[c_rail] = new Sensor(A4, 2, true);     // Channel 5 
   
