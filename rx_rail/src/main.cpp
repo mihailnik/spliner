@@ -1,14 +1,13 @@
+// Программа для приемника на тележке (рельс + поворот)
 #include "main.h"
 // #include "Motor.h"
 #include "GyverStepper2.h"
+#include "GyverPlanner2.h"
 #include <GyverTimers.h>
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
-
 //#define SERIAL_EN 1
-
-// For arduino speed up
 
 #define FASTADC 1
 // defines for setting and clearing register bits
@@ -19,10 +18,15 @@
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 #endif
 // For arduino speed up end
-#define CaruselStepPin 6
-#define CaruselDirPin 4
+#define caruselStepPin 6
+#define caruselDirPin 4
+#define caruselEnPin A2
 #define railStepPin 5
 #define railDirPin 8
+#define railEnPin A1
+#define StepPin 3// дополнительная ось
+#define DirPin 7
+#define EnPin A3
 // Define some steppers and the pins the will use
 RF24 radio(9, 10); // nRF24L01+ (CE, CSN)
 
@@ -33,8 +37,11 @@ int currentCarusel = 0;
 int currentRail = 0;
 
 //GStepper<STEPPER2WIRE> stepper(steps, step, dir, en);               // драйвер step-dir + пин enable
-GStepper2<STEPPER2WIRE> MotorCarusel(400, CaruselStepPin, CaruselDirPin); 
+GStepper2<STEPPER2WIRE> MotorCarusel(400, caruselStepPin, caruselDirPin); 
 GStepper2<STEPPER2WIRE> MotorRail(400, railStepPin, railDirPin); 
+Stepper<STEPPER2WIRE> MotorPlanCarusel(caruselStepPin, caruselDirPin);
+Stepper<STEPPER2WIRE> MotorPlanRail(railStepPin, railDirPin);
+GPlanner2<STEPPER2WIRE, 2> planner;
 
 float correction1 = 1.0; // Kivok
 float correction2 = 4.0; // Karusel
@@ -57,8 +64,8 @@ void setup(){
   cbi(ADCSRA,ADPS1) ;
   cbi(ADCSRA,ADPS0) ;
   #endif
-  pinMode(CaruselStepPin, OUTPUT);
-  pinMode(CaruselDirPin, OUTPUT);
+  pinMode(caruselStepPin, OUTPUT);
+  pinMode(caruselDirPin, OUTPUT);
   pinMode(railStepPin, OUTPUT);
   pinMode(railDirPin, OUTPUT);
 
