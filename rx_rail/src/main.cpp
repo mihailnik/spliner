@@ -36,6 +36,24 @@ int dir_Rail = 0; // буфер направления мотора
 int currentCarusel = 0;
 int currentRail = 0;
 
+// пример с записанным в памяти маршрутом
+// смотри график
+
+int path[][2] = {
+  {10, 10},
+  {30, 30},
+  {50, 50},
+  {70, 70},
+  {90, 90},
+  {110, 110},
+  {130, 130},
+  {150, 150},
+  {170, 170},
+};
+
+// количество точек (пусть компилятор сам считает)
+// как вес всего массива / (2+2) байта
+int nodeAmount = sizeof(path) / 4;
 //GStepper<STEPPER2WIRE> stepper(steps, step, dir, en);               // драйвер step-dir + пин enable
 GStepper2<STEPPER2WIRE> MotorCarusel(400, caruselStepPin, caruselDirPin); 
 GStepper2<STEPPER2WIRE> MotorRail(400, railStepPin, railDirPin); 
@@ -97,10 +115,21 @@ void setup(){
   MotorCarusel.enable();
   MotorRail.enable();
 //  Timer3.enableISR();                   // Запускаем прерывание (по умолч. канал А)
+  // добавляем шаговики на оси
+  planner.addStepper(0, MotorPlanCarusel);  // ось 0
+  planner.addStepper(1, MotorPlanRail);  // ось 1
 
+  // устанавливаем ускорение и скорость
+  planner.setAcceleration(500);
+  planner.setMaxSpeed(500);
+  
+  // начальная точка системы должна совпадать с первой точкой маршрута
+  planner.setCurrent(path[0]);
+  planner.start();
+  delay(100);
 }
 
-
+int count = 0;  // счётчик точек маршрута
 void loop()
 {
   // поменять лифт и нод , на пульте clock, lift, nod, carusel, rail
@@ -115,6 +144,14 @@ void loop()
 
    MotorCarusel.tick(); 
    MotorRail.tick();
+
+   planner.tick();
+  // если в буфере планировщика есть место
+  if (planner.available()) {
+    // добавляем точку маршрута и является ли она точкой остановки (0 - нет)
+    planner.addTarget(path[count], 0);
+  // if (++count >= sizeof(path) / 4) count = 0; // закольцевать
+  }
 
     radioRX();
 
