@@ -3,6 +3,7 @@
 // #include "Motor.h"
 #include "GyverStepper2.h"
 #include "GyverPlanner2.h"
+#include "path.h"
 #include <GyverTimers.h>
 #include <SPI.h>
 #include <nRF24L01.h>
@@ -39,21 +40,11 @@ int currentRail = 0;
 // пример с записанным в памяти маршрутом
 // смотри график
 
-int path[][2] = {
-  {10, 10},
-  {30, 30},
-  {50, 50},
-  {70, 70},
-  {90, 90},
-  {110, 110},
-  {130, 130},
-  {150, 150},
-  {170, 170},
-};
+extern 
 
 // количество точек (пусть компилятор сам считает)
 // как вес всего массива / (2+2) байта
-int nodeAmount = sizeof(path) / 4;
+//int nodeAmount = sizeof(path) / 4;
 //GStepper<STEPPER2WIRE> stepper(steps, step, dir, en);               // драйвер step-dir + пин enable
 GStepper2<STEPPER2WIRE> MotorCarusel(400, caruselStepPin, caruselDirPin); 
 GStepper2<STEPPER2WIRE> MotorRail(400, railStepPin, railDirPin); 
@@ -120,8 +111,8 @@ void setup(){
   planner.addStepper(1, MotorPlanRail);  // ось 1
 
   // устанавливаем ускорение и скорость
-  planner.setAcceleration(500);
-  planner.setMaxSpeed(500);
+  planner.setAcceleration(64);
+  planner.setMaxSpeed(512);
   
   // начальная точка системы должна совпадать с первой точкой маршрута
   planner.setCurrent(path[0]);
@@ -129,7 +120,7 @@ void setup(){
   delay(100);
 }
 
-int count = 0;  // счётчик точек маршрута
+uint8_t count = 0;  // счётчик точек маршрута
 void loop()
 {
   // поменять лифт и нод , на пульте clock, lift, nod, carusel, rail
@@ -137,21 +128,11 @@ void loop()
     // MotorCarusel.setTarget(2000);
     // MotorLift.setTarget(2000);
   while (1){
-  // if (millis() - tmr >= 1) {
-  //   tmr = millis();
-//    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-  // }
 
-   MotorCarusel.tick(); 
-   MotorRail.tick();
-
-   planner.tick();
-  // если в буфере планировщика есть место
-  if (planner.available()) {
-    // добавляем точку маршрута и является ли она точкой остановки (0 - нет)
-    planner.addTarget(path[count], 0);
-  // if (++count >= sizeof(path) / 4) count = 0; // закольцевать
-  }
+    MotorCarusel.tick(); 
+    MotorRail.tick();
+   // planerCicle();
+  
 
     radioRX();
 
@@ -161,7 +142,20 @@ void loop()
 
   }
 }
-
+ void planerCicle(void){
+     planner.tick();
+  if (planner.available()) {
+    // добавляем точку маршрута и является ли она точкой остановки (0 - нет)
+    
+    if (++count >= 64){
+      planner.stop();
+      //count = 0; // закольцевать
+    } else {
+    planner.addTarget(path[count], 0);
+    }
+  }
+ }
+ 
 void radioRX(){
   if(radio.available())
   {
