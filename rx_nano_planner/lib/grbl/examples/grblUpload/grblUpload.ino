@@ -1,6 +1,3 @@
-// Программа для приемника на тележке (рельс + поворот)
-//#include "main.h"
-
 /***********************************************************************
 This sketch compiles and uploads Grbl to your 328p-based Arduino! 
 
