@@ -18,6 +18,14 @@
 		{
 			"name": "rx_nano_planner",
 			"path": "rx_nano_planner"
+		},
+		{
+			"name": "rp",
+			"path": "rp"
+		},
+		{
+			"name": "rp_tx",
+			"path": "rp_tx"
 		}
 	]
 }
