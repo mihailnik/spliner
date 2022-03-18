@@ -14,13 +14,12 @@
 
 #include <Si446x.h>
 
-#define CHANNEL 149
+#define CHANNEL 20
 #define MAX_PACKET_SIZE 10
 
 #define PACKET_NONE		0
 #define PACKET_OK		1
 #define PACKET_INVALID	2
-
 
 typedef struct{
 	uint8_t ready;
@@ -31,18 +30,8 @@ typedef struct{
 
 static volatile pingInfo_t pingInfo;
 
-static uint8_t  ledSt = 0;
-void SI446X_LED_TOGGLE(uint8_t ardu_GPIO, si446x_gpio_t si_GPIO)
-{
-	Si446x_writeGPIO(si_GPIO, ledSt ? SI446X_GPIO_MODE_DRIVE1 : SI446X_GPIO_MODE_DRIVE0 );
-
-	digitalWrite(ardu_GPIO, ledSt ? HIGH : LOW);
-	ledSt = !ledSt;
-}
-
 void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
 {
-//	SI446X_LED_TOGGLE(A5, SI446X_GPIO0);
 	if(length > MAX_PACKET_SIZE)
 		length = MAX_PACKET_SIZE;
 
@@ -57,7 +46,6 @@ void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
 
 void SI446X_CB_RXINVALID(int16_t rssi)
 {
-//	SI446X_LED_TOGGLE(A5, SI446X_GPIO0);
 	pingInfo.ready = PACKET_INVALID;
 	pingInfo.rssi = rssi;
 }
@@ -70,8 +58,7 @@ void setup()
 
 	// Start up
 	Si446x_init();
-//	Si446x_setTxPower(SI446X_MAX_TX_POWER);
-	Si446x_setTxPower(63);
+	Si446x_setTxPower(SI446X_MAX_TX_POWER);
 }
 
 void loop()
@@ -86,11 +73,7 @@ void loop()
 
 	// Wait for data
 	while(pingInfo.ready == PACKET_NONE);
-
-//m
-	//SI446X_LED_TOGGLE(A5, SI446X_GPIO0);
-//m
-
+		
 	if(pingInfo.ready != PACKET_OK)
 	{
 		invalids++;

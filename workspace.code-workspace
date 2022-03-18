@@ -26,6 +26,22 @@
 		{
 			"name": "rp_tx",
 			"path": "rp_tx"
+		},
+		{
+			"name": "scaner",
+			"path": "scaner"
+		},
+		{
+			"name": "irq_rp",
+			"path": "irq_rp"
+		},
+		{
+			"name": "rp_beacon",
+			"path": "rp_beacon"
+		},
+		{
+			"name": "wi_fi_bird",
+			"path": "wi_fi_bird"
 		}
 	]
 }
