@@ -8,14 +8,14 @@
 
 /*
  * Ping client
- *  пульт/передатчик пингует на сервера
+ *
  * Time how long it takes to send some data and get a reply
  * Should be around 5-6ms with default settings
  */
 
 #include <Si446x.h>
 
-#define CHANNEL 149
+#define CHANNEL 20
 #define MAX_PACKET_SIZE 10
 #define TIMEOUT 1000
 
@@ -32,15 +32,6 @@ typedef struct{
 } pingInfo_t;
 
 static volatile pingInfo_t pingInfo;
-
-static uint8_t  ledSt = 0;
-void SI446X_LED_TOGGLE(uint8_t ardu_GPIO, si446x_gpio_t si_GPIO)
-{
-	Si446x_writeGPIO(si_GPIO, ledSt ? SI446X_GPIO_MODE_DRIVE1 : SI446X_GPIO_MODE_DRIVE0 );
-
-	digitalWrite(ardu_GPIO, ledSt ? HIGH : LOW);
-	ledSt = !ledSt;
-}
 
 void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
 {
@@ -149,11 +140,7 @@ void loop()
 		Serial.write((uint8_t*)pingInfo.buffer, sizeof(pingInfo.buffer));
 		Serial.println();
 	}
-	SI446X_LED_TOGGLE(A5, SI446X_GPIO0);
 
-//	Serial.print(CHANNEL);
-//	Serial.println(F("------"));
-	
 	Serial.print(F("Totals: "));
 	Serial.print(sent);
 	Serial.print(F(" Sent, "));

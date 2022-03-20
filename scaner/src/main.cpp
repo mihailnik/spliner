@@ -14,19 +14,10 @@
 
 #include <Si446x.h>
 
-static volatile uint8_t channel =149;
-static uint8_t  ledSt = 0;
-void SI446X_LED_TOGGLE(uint8_t ardu_GPIO, si446x_gpio_t si_GPIO)
-{
-	Si446x_writeGPIO(si_GPIO, ledSt ? SI446X_GPIO_MODE_DRIVE1 : SI446X_GPIO_MODE_DRIVE0 );
-
-	digitalWrite(ardu_GPIO, ledSt ? HIGH : LOW);
-	ledSt = !ledSt;
-}
+static volatile uint8_t channel;
 
 void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
 {
-	SI446X_LED_TOGGLE(A5, SI446X_GPIO0);
 	(void)(length); // Stop warnings about unused parameters
 	(void)(rssi);
 
@@ -35,7 +26,6 @@ void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
 
 void SI446X_CB_RXINVALID(int16_t rssi)
 {
-	SI446X_LED_TOGGLE(A5, SI446X_GPIO0);
 	(void)(rssi);
 
 	Si446x_RX(channel);
@@ -75,5 +65,5 @@ void loop()
 	Serial.print(peakRssi);
 	Serial.println(F(")"));
 
-	//channel++;
+	channel++;
 }
