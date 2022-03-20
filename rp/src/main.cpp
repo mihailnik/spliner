@@ -69,7 +69,7 @@ void loop()
 	// Put into receive mode
 	Si446x_RX(CHANNEL);
 
-	Serial.println(F("Waiting for ping..."));
+	Serial.println(F("Wait ping."));
 
 	// Wait for data
 	while(pingInfo.ready == PACKET_NONE);
@@ -88,19 +88,19 @@ void loop()
 		pings++;
 		pingInfo.ready = PACKET_NONE;
 
-		Serial.println(F("Got ping, sending reply..."));
+//		Serial.println(F("Got ping, sending reply..."));
 
 		// Send back the data, once the transmission has completed go into receive mode
-		Si446x_TX((uint8_t*)pingInfo.buffer, pingInfo.length, CHANNEL, SI446X_STATE_RX);
+//		Si446x_TX((uint8_t*)pingInfo.buffer, pingInfo.length, CHANNEL, SI446X_STATE_RX);
 
-		Serial.println(F("Reply sent"));
+//		Serial.println(F("Reply sent"));
 
 		// Toggle LED
 		static uint8_t ledState;
 		digitalWrite(A5, ledState ? HIGH : LOW);
 		ledState = !ledState;
 
-		Serial.print(F("Signal strength: "));
+//		Serial.print(F("Signal strength: "));
 		Serial.print(pingInfo.rssi);
 		Serial.println(F("dBm"));
 
