@@ -12,7 +12,7 @@
  * Listen for packets and send them back
  */
 
-#include <Si446x.h>
+#include <main.h>
 
 #define CHANNEL 20
 #define MAX_PACKET_SIZE 10
@@ -20,6 +20,13 @@
 #define PACKET_NONE		0
 #define PACKET_OK		1
 #define PACKET_INVALID	2
+
+#define RP_NUM	1		// номер привода
+
+Servo myservo;  // create servo object to control a servo
+// twelve servo objects can be created on most boards
+
+int pos = 0;    // variable to store the servo position
 
 typedef struct{
 	uint8_t ready;
@@ -53,7 +60,7 @@ void SI446X_CB_RXINVALID(int16_t rssi)
 void setup()
 {
 	Serial.begin(115200);
-
+	 myservo.attach(9);  // attaches the servo on pin 9 to the servo object
 	pinMode(A5, OUTPUT); // LED
 
 	// Start up
@@ -88,32 +95,43 @@ void loop()
 		pings++;
 		pingInfo.ready = PACKET_NONE;
 
-//		Serial.println(F("Got ping, sending reply..."));
-
-		// Send back the data, once the transmission has completed go into receive mode
-//		Si446x_TX((uint8_t*)pingInfo.buffer, pingInfo.length, CHANNEL, SI446X_STATE_RX);
-
-//		Serial.println(F("Reply sent"));
-
 		// Toggle LED
 		static uint8_t ledState;
+		
+		static uint8_t servoState=0;
+
 		digitalWrite(A5, ledState ? HIGH : LOW);
 		ledState = !ledState;
+		switch (pingInfo.buffer[RP_NUM])
+		{
+			case RP_FIER:
+			Serial.println(F("FIER 1!"));
+			myservo.write(180);              // tell servo to go to position in variable 'pos'
+			break;
+			case RP_NOP:
+			Serial.println(F("NOP 1"));
+			myservo.write(0);              // tell servo to go to position in variable 'pos'
+			break;
+
+			default:
+			break;
+		}
+
 
 //		Serial.print(F("Signal strength: "));
 		Serial.print(pingInfo.rssi);
 		Serial.println(F("dBm"));
 
 		// Print out ping contents
-		Serial.print(F("Data from server: "));
+		Serial.print(F("Data: "));
 		Serial.write((uint8_t*)pingInfo.buffer, sizeof(pingInfo.buffer));
 		Serial.println();
 	}
 
-	Serial.print(F("Totals: "));
-	Serial.print(pings);
-	Serial.print(F("Pings, "));
-	Serial.print(invalids);
-	Serial.println(F("Invalid"));
-	Serial.println(F("------"));
+	// Serial.print(F("Totals: "));
+	// Serial.print(pings);
+	// Serial.print(F("Pings, "));
+	// Serial.print(invalids);
+	// Serial.println(F("Invalid"));
+	// Serial.println(F("------"));
 }
