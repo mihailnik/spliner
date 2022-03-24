@@ -16,17 +16,21 @@
 
 #define CHANNEL 20
 #define MAX_PACKET_SIZE 10
+#define TIMEOUT 1000
 
 #define PACKET_NONE		0
 #define PACKET_OK		1
 #define PACKET_INVALID	2
 
-#define RP_NUM	1		// номер привода
+#define RP_NUM	3		// номер привода
+#define LED_PINE	A5		// номер привода
 
 Servo myservo;  // create servo object to control a servo
 // twelve servo objects can be created on most boards
 
 int pos = 0;    // variable to store the servo position
+static uint8_t ledState = 0;
+uint8_t slp = 0;    
 
 typedef struct{
 	uint8_t ready;
@@ -57,81 +61,141 @@ void SI446X_CB_RXINVALID(int16_t rssi)
 	pingInfo.rssi = rssi;
 }
 
-void setup()
+void RP_SLEEP(void)
 {
-	Serial.begin(115200);
-	 myservo.attach(9);  // attaches the servo on pin 9 to the servo object
-	pinMode(A5, OUTPUT); // LED
-
-	// Start up
-	Si446x_init();
-	Si446x_setTxPower(SI446X_MAX_TX_POWER);
+	digitalWrite(LED_PINE, LOW);
+	slp = 1;
+	Si446x_sleep();
+	delay(50);
+	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
+	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
+//	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
+//	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
+//	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
+//	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
+		// Start up
+	digitalWrite(LED_PINE, HIGH);
+	delay(1000);
+	slp = 0;
 }
 
-void loop()
+void RX_CMD_EXEC(void)
 {
-	static uint32_t pings;
-	static uint32_t invalids;
-
-	// Put into receive mode
-	Si446x_RX(CHANNEL);
-
-	Serial.println(F("Wait ping."));
-
-	// Wait for data
-	while(pingInfo.ready == PACKET_NONE);
-		
-	if(pingInfo.ready != PACKET_OK)
-	{
-		invalids++;
-		pingInfo.ready = PACKET_NONE;
-		Serial.print(F("Invalid packet! Signal: "));
-		Serial.print(pingInfo.rssi);
-		Serial.println(F("dBm"));
-		Si446x_RX(CHANNEL);
-	}
-	else
-	{
-		pings++;
 		pingInfo.ready = PACKET_NONE;
 
-		// Toggle LED
-		static uint8_t ledState;
-		
-		static uint8_t servoState=0;
 
-		digitalWrite(A5, ledState ? HIGH : LOW);
-		ledState = !ledState;
+
 		switch (pingInfo.buffer[RP_NUM])
 		{
 			case RP_FIER:
 			Serial.println(F("FIER 1!"));
-			myservo.write(180);              // tell servo to go to position in variable 'pos'
+			myservo.write(0);              // tell servo to go to position in variable 'pos'
 			break;
 			case RP_NOP:
 			Serial.println(F("NOP 1"));
-			myservo.write(0);              // tell servo to go to position in variable 'pos'
+			myservo.write(180);              // tell servo to go to position in variable 'pos'
 			break;
+			case RP_SLEP:
 
+			Serial.println(F("SLEEP"));
+			RP_SLEEP();
+
+			break;
 			default:
 			break;
 		}
+}
 
+void setup()
+{
+//	Serial.begin(115200);
+//	 myservo.attach(9);  // attaches the servo on pin 9 to the servo object
 
-//		Serial.print(F("Signal strength: "));
-		Serial.print(pingInfo.rssi);
-		Serial.println(F("dBm"));
+	// Start up
+//	Si446x_init();
+//	Si446x_setTxPower(SI446X_MAX_TX_POWER);
+//	myservo.write(180);
 
-		// Print out ping contents
-		Serial.print(F("Data: "));
-		Serial.write((uint8_t*)pingInfo.buffer, sizeof(pingInfo.buffer));
-		Serial.println();
+	power.setSleepMode(POWERDOWN_SLEEP); // режим сна (по умолчанию POWERDOWN_SLEEP)
+	pinMode(LED_PINE, OUTPUT); // LED
+}
+
+void loop()
+{
+
+while (1)
+{
+//		Si446x_sleep();
+		power.sleepDelay(2000);
+		digitalWrite(LED_PINE, HIGH);
+		ledState = !ledState;
+		delay(2000);
+		digitalWrite(LED_PINE, LOW);
+		ledState = !ledState;
+}
+
+	// Put into receive mode
+	Si446x_RX(CHANNEL);
+	Serial.println(F("Wait ping."));
+
+	if (slp == 1)// sleep mode
+	{
+			// Wait for reply with timeout
+		uint8_t success;
+		uint32_t sendStartTime = millis();
+		while(1)// просыпаемся на время что бы послушать
+		{
+			success = pingInfo.ready;
+			if(success != PACKET_NONE)
+				break;
+			else if(millis() - sendStartTime > TIMEOUT) // Timeout // TODO typecast to uint16_t
+				break;
+		}
+		if (success == PACKET_NONE) //если нет команд то снова спим
+		{
+			RP_SLEEP();
+		}
+		else if (success == PACKET_INVALID)
+		{
+			slp = 0;
+			pingInfo.ready = PACKET_NONE;
+		}
+		else if (success == PACKET_OK)
+		{
+			slp = 0;
+			pingInfo.ready = PACKET_NONE;
+			RX_CMD_EXEC();
+		}
+		
+	}
+	else // not sleep mode
+	{
+		while (pingInfo.ready == PACKET_NONE)
+		{
+			; //ждем пакет /* code */
+		}
+		
+		uint8_t success;
+		success = pingInfo.ready;
+		if (success == PACKET_INVALID)
+		{
+			pingInfo.ready = PACKET_NONE;
+			Serial.println(F("P invalid"));
+		}
+		else
+		{
+			pingInfo.ready = PACKET_NONE;
+			RX_CMD_EXEC();
+		}
 	}
 
-	// Serial.print(F("Totals: "));
-	// Serial.print(pings);
-	// Serial.print(F("Pings, "));
-	// Serial.print(invalids);
-	// Serial.println(F("Invalid"));
-	// Serial.println(F("------"));
+//		Serial.print(F("Data: "));
+//		Serial.write((uint8_t*)pingInfo.buffer, sizeof(pingInfo.buffer));
+//		Serial.println();
+
+//		Serial.print(F("Signal strength: "));
+//		Serial.print(pingInfo.rssi);
+//		Serial.println(F("dBm"));
+
+		// Print out ping contents
 }

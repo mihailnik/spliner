@@ -30,6 +30,13 @@
 		{
 			"name": "scaner",
 			"path": "scaner"
+		},
+		{
+			"path": "wi_fi_bird"
+		},
+		{
+			"name": "bird",
+			"path": "bird"
 		}
 	]
 }

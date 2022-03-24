@@ -68,7 +68,7 @@ void setup()
 {
 	Serial.begin(115200);
 
-	pinMode(LED_PIN, OUTPUT); // LED
+	pinMode(LED_PIN, OUTPUT); // LED 
 
 	// Start up
 	Si446x_init();
@@ -79,11 +79,16 @@ void loop()
 {
 	customKey = customKeypad.getKey();
 	// обнуляем данные
-	for (uint8_t i = 0; i < MAX_PACKET_SIZE; i++){	data[i] = 0;}
 	if (customKey)
 	{	
 		switch (customKey)
 		{
+			case '#':
+			for (uint8_t i = 0; i < MAX_PACKET_SIZE; i++){	data[i] = RP_SLEP;}
+			break;
+			case '0':
+			for (uint8_t i = 0; i < MAX_PACKET_SIZE; i++){	data[i] = RP_NOP;}
+			break;
 			case '1':
 			data[1] = RP_FIER;
 			break;
