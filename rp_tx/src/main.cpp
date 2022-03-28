@@ -27,10 +27,6 @@
 
 static char data[MAX_PACKET_SIZE] = {0};
 
-static	char	customKey;
-
-static uint8_t counter;
-static uint32_t sent;
 static uint32_t replies;
 static uint32_t timeouts;
 static uint32_t invalids;
@@ -50,6 +46,68 @@ byte colPins[COLS] = {A4, A5, 7}; //connect to the column pinouts of the keypad
 //initialize an instance of class NewKeypad
 Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
 
+char swich_key_control(void){
+char key = 0;
+static	char	customKey;
+
+	customKey = customKeypad.getKey();
+	// обнуляем данные
+	if (customKey)
+	{	
+		switch (customKey)
+		{
+			case '#':
+			for (uint8_t i = 0; i < MAX_PACKET_SIZE; i++){	data[i] = RP_SLEP;} /// усыпляем
+			key = '#';
+			break;
+			case '0':
+			for (uint8_t i = 0; i < MAX_PACKET_SIZE; i++){	data[i] = RP_WEKUP;} // просыпаемся
+			key = '0';
+			break;
+			case '1':
+			data[1] = RP_FIER;
+			key = '1';
+			break;
+			case '2':
+			data[2] = RP_FIER;
+			key = '2';
+			break;
+			case '3':
+			data[3] = RP_FIER;
+			key = '3';
+			break;
+			case '4':
+			data[4] = RP_FIER;
+			key = '4';
+			break;
+			case '5':
+			data[5] = RP_FIER;
+			key = '5';
+			break;
+			case '6':
+			data[6] = RP_FIER;
+			key = '6';
+			break;
+			case '7':
+			data[7] = RP_FIER;
+			key = '7';
+			break;
+			case '8':
+			data[8] = RP_FIER;
+			key = '8';
+			break;
+			case '9':
+			data[9] = RP_FIER;
+			key = '9';
+			break;
+	
+			default:
+			break;
+		}
+		Serial.println(customKey);
+	}
+return key;
+}
 
 
 typedef struct{
@@ -77,52 +135,30 @@ void setup()
 
 void loop()
 {
-	customKey = customKeypad.getKey();
-	// обнуляем данные
-	if (customKey)
-	{	
-		switch (customKey)
+char key_ret = 0;
+	key_ret = swich_key_control();
+	if (key_ret != 0)
+	{
+		if (key_ret == '0') //пробуждаем раз шлем сигнал пробуждения каждые 2сек (30сек)
 		{
-			case '#':
-			for (uint8_t i = 0; i < MAX_PACKET_SIZE; i++){	data[i] = RP_SLEP;}
-			break;
-			case '0':
-			for (uint8_t i = 0; i < MAX_PACKET_SIZE; i++){	data[i] = RP_NOP;}
-			break;
-			case '1':
-			data[1] = RP_FIER;
-			break;
-			case '2':
-			data[2] = RP_FIER;
-			break;
-			case '3':
-			data[3] = RP_FIER;
-			break;
-			case '4':
-			data[4] = RP_FIER;
-			break;
-			case '5':
-			data[5] = RP_FIER;
-			break;
-			case '6':
-			data[6] = RP_FIER;
-			break;
-			case '7':
-			data[7] = RP_FIER;
-			break;
-			case '8':
-			data[8] = RP_FIER;
-			break;
-			case '9':
-			data[9] = RP_FIER;
-			break;
-	
-			default:
-			break;
+			for (size_t i = 0; i < 15 ; i++)
+			{
+				static uint8_t ledState;
+
+				digitalWrite(LED_PIN, ledState ? HIGH : LOW);
+				ledState = !ledState;
+				RadioTX(SI446X_STATE_TX);
+				delay(2000);
+			}
 		}
-		Serial.println(customKey);
-		RadioTX(SI446X_STATE_SLEEP);
+		else
+		{
+ 		RadioTX(SI446X_STATE_SLEEP);
+		}
+		
 	}
+
+	
 	// Make data
 
 	
@@ -132,20 +168,19 @@ void loop()
 	// Serial.print(F("Sending data"));
 	// Serial.println(data);
 
-//	delay(1000);	
+	delay(10);	
 }
 
-// шлем пакет и состояние после отправки спим/принимаем подтверждение о получении	
+// шлем пакет
 uint8_t RadioTX(si446x_state_t state_after_tx)
 {
 	uint8_t reply_state = 0;
 	// Send the data
 	Si446x_TX(data, sizeof(data), CHANNEL, state_after_tx);
-	sent++;
 	//ждем или нет ответа
 	if (state_after_tx == SI446X_STATE_RX)
 	{
-		Serial.println(F("Data sent, waiting for reply..."));
+//prt		Serial.println(F("Data sent, waiting for reply..."));
 	
 		uint8_t success;
 
@@ -164,33 +199,32 @@ uint8_t RadioTX(si446x_state_t state_after_tx)
 
 		if(success == PACKET_NONE)
 		{
-			Serial.println(F("Ping timed out"));
+//prt			Serial.println(F("Ping timed out"));
 			timeouts++;
 		}
 		else if(success == PACKET_INVALID)
 		{
-			Serial.print(F("Invalid packet! Signal: "));
-			Serial.print(pingInfo.rssi);
-			Serial.println(F("dBm"));
+//prt			Serial.print(F("Invalid packet! Signal: "));
+//prt			Serial.print(pingInfo.rssi);
+//prt			Serial.println(F("dBm"));
 			invalids++;
 		}
 		else
 		{
-
 			static uint8_t ledState;
 			digitalWrite(LED_PIN, ledState ? HIGH : LOW);
 			ledState = !ledState;
 
 			replies++;
 
-			Serial.print(F("Signal strength: "));
-			Serial.print(pingInfo.rssi);
-			Serial.println(F("dBm"));
+//prt			Serial.print(F("Signal strength: "));
+//prt			Serial.print(pingInfo.rssi);
+//prt			Serial.println(F("dBm"));
 
 			// Print out ping contents
-			Serial.print(F("Data from server: "));
-			Serial.write((uint8_t*)pingInfo.buffer, sizeof(pingInfo.buffer));
-			Serial.println();
+//prt			Serial.print(F("Data from server: "));
+//prt			Serial.write((uint8_t*)pingInfo.buffer, sizeof(pingInfo.buffer));
+//prt			Serial.println();
 		}
 	}
 	return reply_state;

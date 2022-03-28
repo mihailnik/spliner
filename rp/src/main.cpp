@@ -16,7 +16,7 @@
 
 #define CHANNEL 20
 #define MAX_PACKET_SIZE 10
-#define TIMEOUT 1000
+#define TIMEOUT 3000
 
 #define PACKET_NONE		0
 #define PACKET_OK		1
@@ -24,13 +24,18 @@
 
 #define RP_NUM	3		// номер привода
 #define LED_PINE	A5		// номер привода
+#define SERVO_PINE	7		// номер привода
 
-Servo myservo;  // create servo object to control a servo
+Servo servo0;  // create servo object to control a servo
+Servo servo1;  // create servo object to control a servo
+Servo servo2;  // create servo object to control a servo
+Servo servo3;  // create servo object to control a servo
+Servo servo4;  // create servo object to control a servo
 // twelve servo objects can be created on most boards
 
 int pos = 0;    // variable to store the servo position
 static uint8_t ledState = 0;
-uint8_t slp = 0;    
+static uint8_t slp = 0;    
 
 typedef struct{
 	uint8_t ready;
@@ -40,6 +45,67 @@ typedef struct{
 } pingInfo_t;
 
 static volatile pingInfo_t pingInfo;
+
+void test_while(){
+	while (1)
+	{
+//		Si446x_sleep();
+		digitalWrite(SERVO_PINE, HIGH);
+		delay(50);
+		servo0.write(0); 
+		delay(1000);
+		servo0.write(180); 
+//		fire_num = 1;
+		delay(1000);
+		digitalWrite(SERVO_PINE, LOW);
+		delay(1000);
+	}
+}
+
+void fire(){
+static uint8_t fire_num = 0;    // variable to store the servo position
+
+		digitalWrite(SERVO_PINE, HIGH);
+		delay(50);
+
+	if (fire_num == 0)
+	{
+		servo0.write(0); 
+		delay(1000);
+		servo0.write(180); 
+		fire_num = 1;
+	}
+	else if (fire_num == 1)
+	{
+		servo1.write(0); 
+		delay(1000);
+		servo1.write(180); 
+		fire_num = 2;
+	}
+	else if (fire_num == 2)
+	{
+		servo2.write(0); 
+		delay(1000);
+		servo2.write(180); 
+		fire_num = 3;
+	}
+	else if (fire_num == 3)
+	{
+		servo3.write(0); 
+		delay(1000);
+		servo3.write(180); 
+		fire_num = 4;
+	}
+	else if (fire_num == 4)
+	{
+		servo4.write(0); 
+		delay(1000);
+		servo4.write(180);
+		fire_num = 0;
+	}
+		delay(1000);
+		digitalWrite(SERVO_PINE, LOW);
+}
 
 void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
 {
@@ -69,11 +135,6 @@ void RP_SLEEP(void)
 	delay(50);
 	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
 	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
-//	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
-//	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
-//	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
-//	power.sleep(SLEEP_8192MS); // спим ~ 8 секунды (некалиброванный таймаут. Смотри пример с калибрвокой!)
-		// Start up
 	digitalWrite(LED_PINE, HIGH);
 	delay(1000);
 	slp = 0;
@@ -82,18 +143,17 @@ void RP_SLEEP(void)
 void RX_CMD_EXEC(void)
 {
 		pingInfo.ready = PACKET_NONE;
-
-
-
 		switch (pingInfo.buffer[RP_NUM])
 		{
 			case RP_FIER:
 			Serial.println(F("FIER 1!"));
-			myservo.write(0);              // tell servo to go to position in variable 'pos'
+			fire();
+			break;
+			case RP_WEKUP:
+			Serial.println(F("WKP 1"));
 			break;
 			case RP_NOP:
 			Serial.println(F("NOP 1"));
-			myservo.write(180);              // tell servo to go to position in variable 'pos'
 			break;
 			case RP_SLEP:
 
@@ -108,31 +168,29 @@ void RX_CMD_EXEC(void)
 
 void setup()
 {
-//	Serial.begin(115200);
-//	 myservo.attach(9);  // attaches the servo on pin 9 to the servo object
+	Serial.begin(115200);
+	servo0.attach(3);  // attaches the servo on pin 3 to the servo object
+	servo0.write(180);
+	servo1.attach(5);  // attaches the servo on pin 5 to the servo object
+	servo1.write(180);
+	servo2.attach(6);  // attaches the servo on pin 6 to the servo object
+	servo2.write(180);
+	servo3.attach(9);  // attaches the servo on pin 9 to the servo object
+	servo3.write(180);
+	// servo4.attach(10);  // attaches the servo on pin 10 to the servo object
+	// servo4.write(180);
+	pinMode(SERVO_PINE, OUTPUT); // LED
 
 	// Start up
-//	Si446x_init();
-//	Si446x_setTxPower(SI446X_MAX_TX_POWER);
-//	myservo.write(180);
-
+	Si446x_init();
+	Si446x_setTxPower(SI446X_MAX_TX_POWER);
 	power.setSleepMode(POWERDOWN_SLEEP); // режим сна (по умолчанию POWERDOWN_SLEEP)
 	pinMode(LED_PINE, OUTPUT); // LED
 }
 
 void loop()
 {
-
-while (1)
-{
-//		Si446x_sleep();
-		power.sleepDelay(2000);
-		digitalWrite(LED_PINE, HIGH);
-		ledState = !ledState;
-		delay(2000);
-		digitalWrite(LED_PINE, LOW);
-		ledState = !ledState;
-}
+//	test_while();
 
 	// Put into receive mode
 	Si446x_RX(CHANNEL);
@@ -186,6 +244,7 @@ while (1)
 		{
 			pingInfo.ready = PACKET_NONE;
 			RX_CMD_EXEC();
+//			test_while();
 		}
 	}
 

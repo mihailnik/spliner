@@ -32,11 +32,12 @@
 			"path": "scaner"
 		},
 		{
-			"path": "wi_fi_bird"
+			"name": "nano_t",
+			"path": "nano_t"
 		},
 		{
-			"name": "bird",
-			"path": "bird"
+			"name": "mini_t",
+			"path": "mini_t"
 		}
 	]
 }

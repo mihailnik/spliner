@@ -50,7 +50,7 @@
 ///////////////////
 
 // Arduino pin assignments
-#define SI446X_CSN			10
+#define SI446X_CSN			8
 #define SI446X_SDN			5
 #define SI446X_IRQ			2 // This needs to be an interrupt pin
 
