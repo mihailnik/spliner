@@ -54,6 +54,7 @@ static	char	customKey;
 	// обнуляем данные
 	if (customKey)
 	{	
+		for (uint8_t i = 0; i < MAX_PACKET_SIZE; i++){	data[i] = 0;} // ОБНУЛЯЕМ БУФЕР
 		switch (customKey)
 		{
 			case '#':
@@ -147,13 +148,17 @@ char key_ret = 0;
 
 				digitalWrite(LED_PIN, ledState ? HIGH : LOW);
 				ledState = !ledState;
-				RadioTX(SI446X_STATE_TX);
-				delay(2000);
+				RadioTX(SI446X_STATE_SLEEP);
+				Si446x_init();
+				Si446x_setTxPower(SI446X_MAX_TX_POWER);
+				delay(1950);
 			}
 		}
 		else
 		{
- 		RadioTX(SI446X_STATE_SLEEP);
+				Si446x_init();
+				Si446x_setTxPower(SI446X_MAX_TX_POWER);
+ 				RadioTX(SI446X_STATE_SLEEP);
 		}
 		
 	}

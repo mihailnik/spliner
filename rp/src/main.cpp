@@ -71,39 +71,39 @@ static uint8_t fire_num = 0;    // variable to store the servo position
 	if (fire_num == 0)
 	{
 		servo0.write(0); 
-		delay(1000);
+		delay(700);
 		servo0.write(180); 
 		fire_num = 1;
 	}
 	else if (fire_num == 1)
 	{
 		servo1.write(0); 
-		delay(1000);
+		delay(700);
 		servo1.write(180); 
 		fire_num = 2;
 	}
 	else if (fire_num == 2)
 	{
 		servo2.write(0); 
-		delay(1000);
+		delay(700);
 		servo2.write(180); 
 		fire_num = 3;
 	}
 	else if (fire_num == 3)
 	{
 		servo3.write(0); 
-		delay(1000);
+		delay(700);
 		servo3.write(180); 
 		fire_num = 4;
 	}
 	else if (fire_num == 4)
 	{
 		servo4.write(0); 
-		delay(1000);
+		delay(700);
 		servo4.write(180);
 		fire_num = 0;
 	}
-		delay(1000);
+		delay(700);
 		digitalWrite(SERVO_PINE, LOW);
 }
 

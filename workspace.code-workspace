@@ -26,18 +26,6 @@
 		{
 			"name": "rp_tx",
 			"path": "rp_tx"
-		},
-		{
-			"name": "scaner",
-			"path": "scaner"
-		},
-		{
-			"name": "nano_t",
-			"path": "nano_t"
-		},
-		{
-			"name": "mini_t",
-			"path": "mini_t"
 		}
 	]
 }
